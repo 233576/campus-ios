@@ -31,10 +31,12 @@ enum LaundryTab: String, CaseIterable, Identifiable {
 /// 洗衣模块外壳。
 ///
 /// 底部导航被上级 `CampusShell` 占用（洗衣 / 校园网），所以模块内改用顶部
-/// 分段切换。切换是纯淡入 + 轻微位移，位移从当前值开始，随时可被打断。
+/// 分段切换。四段均分宽度：不再用横向 ScrollView —— 那样每段宽度按文字长短，
+/// 又会被滚动手势吃掉点击。
 struct LaundryShell: View {
     @EnvironmentObject private var store: LaundryStore
     @State private var tab: LaundryTab = .laundry
+    @Namespace private var segment
 
     var body: some View {
         VStack(spacing: 0) {
@@ -67,31 +69,55 @@ struct LaundryShell: View {
     }
 
     private var segmentBar: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
-                ForEach(LaundryTab.allCases) { item in
-                    Button {
-                        // 只改目标值：动画从当前呈现值接上，连点也不会跳。
-                        withAnimation(.spring(response: 0.32, dampingFraction: 1.0)) {
-                            tab = item
-                        }
-                    } label: {
-                        HStack(spacing: 6) {
-                            Image(systemName: item.symbol)
-                                .font(.system(size: 12, weight: .semibold))
-                            Text(item.title)
-                                .font(.system(size: 13, weight: .medium))
-                        }
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 8)
-                        .foregroundStyle(tab == item ? Flat.accent : Flat.textSecondary)
-                        .flatPill(selected: tab == item, tint: Flat.accent)
+        HStack(spacing: 4) {
+            ForEach(LaundryTab.allCases) { item in
+                let selected = tab == item
+                Button {
+                    guard tab != item else { return }
+                    // 只改目标值：动画从当前呈现值接上，连点也不会跳。
+                    withAnimation(.spring(response: 0.28, dampingFraction: 0.92)) {
+                        tab = item
                     }
-                    .buttonStyle(.plain)
+                } label: {
+                    HStack(spacing: 5) {
+                        Image(systemName: item.symbol)
+                            .font(.system(size: 11, weight: .semibold))
+                        Text(item.title)
+                            .font(.system(size: 12.5, weight: .semibold))
+                    }
+                    .foregroundStyle(selected ? Flat.accent : Flat.textSecondary)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 8)
+                    .background {
+                        if selected {
+                            Capsule(style: .continuous)
+                                .fill(Flat.accent.opacity(0.15))
+                                .overlay {
+                                    Capsule(style: .continuous)
+                                        .strokeBorder(Flat.accent.opacity(0.45), lineWidth: 1)
+                                }
+                                .matchedGeometryEffect(id: "laundrySegment", in: segment)
+                        }
+                    }
+                    .contentShape(Capsule(style: .continuous))
                 }
+                .buttonStyle(PressScaleStyle(scale: 0.95))
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 10)
         }
+        .padding(4)
+        .background {
+            ZStack {
+                Capsule(style: .continuous).fill(.ultraThinMaterial)
+                Capsule(style: .continuous).fill(Flat.surfaceHigh)
+            }
+        }
+        .overlay {
+            Capsule(style: .continuous).strokeBorder(Flat.stroke, lineWidth: 1)
+        }
+        .clipShape(Capsule(style: .continuous))
+        .shadow(color: Flat.glassShadow.opacity(0.8), radius: 10, x: 0, y: 5)
+        .padding(.horizontal, 14)
+        .padding(.top, 4)
+        .padding(.bottom, 8)
     }
 }
