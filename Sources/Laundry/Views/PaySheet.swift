@@ -82,6 +82,7 @@ struct PaySheet: View {
 
     // MARK: - 卡片
 
+    @ViewBuilder
     private var payArea: some View {
         if payType == PGProtocol.payTypeWallet {
             EmptyView()
