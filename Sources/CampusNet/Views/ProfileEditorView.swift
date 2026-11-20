@@ -105,7 +105,7 @@ struct ProfileEditorView: View {
                 }
             }
 
-            Text("btype=\(kind.btype) · staType=\(kind.staType)：GiWiFi 只认手机 / 平板 / 电脑三类。")
+            Text("上报机型：\(kind.title)。校园网只认手机 / 平板 / 电脑三类，型号统一用苹果。")
                 .font(.caption2)
                 .foregroundStyle(Flat.textTertiary)
         }

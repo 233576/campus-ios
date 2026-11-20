@@ -81,7 +81,9 @@ struct LaundryDeviceSection: View {
             Text(sku.priceText)
                 .font(Typography.monoValue.weight(.semibold))
                 .foregroundStyle(sku.available ? Color.appBrand : Color.secondary)
-            AppChevron()
+            Image(systemName: "cart.badge.plus")
+                .font(Typography.subheadline)
+                .foregroundStyle(sku.available ? Color.appBrand : Color.secondary)
         }
         .contentShape(Rectangle())
         .opacity(sku.available ? 1 : 0.5)
@@ -132,7 +134,9 @@ struct LaundryRecentSection: View {
                             Image(systemName: "checkmark.circle.fill")
                                 .foregroundStyle(Color.appBrand)
                         } else {
-                            AppChevron()
+                            Text("切换")
+                                .font(Typography.caption2)
+                                .foregroundStyle(.secondary)
                         }
                     }
                     .contentShape(Rectangle())

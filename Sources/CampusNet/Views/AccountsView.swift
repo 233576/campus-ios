@@ -37,7 +37,7 @@ struct AccountsView: View {
                         .buttonStyle(FlatButtonStyle(tint: Flat.accent, filled: false, height: 44))
                         .padding(.top, 4)
 
-                        Text("密码只存在本机钥匙串；每个账号有独立的设备标识 appUuid。")
+                        Text("密码只存在本机钥匙串；每个账号有独立的设备标识，互不影响。")
                             .font(.caption2)
                             .foregroundStyle(Flat.textTertiary)
                             .padding(.top, 4)

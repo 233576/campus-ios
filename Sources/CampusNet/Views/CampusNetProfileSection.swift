@@ -57,8 +57,6 @@ struct CampusNetProfileSection: View {
                     Image(systemName: "checkmark")
                         .font(Typography.subheadline.weight(.semibold))
                         .foregroundStyle(Color.appBrand)
-                } else {
-                    AppChevron()
                 }
             }
             .contentShape(Rectangle())
