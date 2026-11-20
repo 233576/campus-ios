@@ -4,7 +4,8 @@ import UIKit
 /// 洗衣主页：账号 → 机器码 → 设备与套餐 → 最近用过 → 待支付。
 ///
 /// 结构走 AppList（insetGrouped），不再用「大卡片套小卡片」。
-/// 唯一保留的卡片是顶部洗涤进度 —— 它是全局状态，不属于任何分组。
+/// 「查询这台洗衣机」上移到导航栏右上角，页面底部不再有通栏按钮，
+/// 滚动内容因此拿到完整的底部空间。
 struct LaundryView: View {
     @EnvironmentObject private var store: LaundryStore
 
@@ -14,11 +15,12 @@ struct LaundryView: View {
     @State private var showingPay = false
     @State private var showingRecharge = false
     @State private var confirming: PGSku?
+    @State private var toast: String?
 
     var body: some View {
         VStack(spacing: 0) {
             if let order = progressOrder {
-                WashProgressCard(order: order, now: store.now, alert: store.activeAlert)
+                WashProgressCard(order: order, alert: store.activeAlert)
                     .padding(.horizontal, Spacing.page)
                     .padding(.top, Spacing.s)
                     .padding(.bottom, Spacing.xs)
@@ -44,13 +46,14 @@ struct LaundryView: View {
         .toolbarBackground(.automatic, for: .navigationBar)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                GlassToolbarButton(symbol: "arrow.clockwise", label: "刷新") {
-                    Task { await store.refreshAll() }
+                GlassToolbarButton(symbol: "arrow.clockwise.circle.fill", label: "查询这台洗衣机") {
+                    Task { await query() }
                 }
-                .disabled(store.isBusy)
+                .disabled(!canQuery)
+                .opacity(canQuery ? 1 : 0.4)
             }
         }
-        .safeAreaInset(edge: .bottom, spacing: 0) { bottomBar }
+        .appToast($toast)
         .sheet(isPresented: $showingLogin) {
             LoginSheet {
                 let target = code.trimmingCharacters(in: .whitespaces)
@@ -115,6 +118,27 @@ struct LaundryView: View {
         }
     }
 
+    // MARK: - 查询
+
+    /// 机器码为空时按钮置灰；执行中由 store.isBusy 驱动进度态。
+    private var canQuery: Bool {
+        !store.isBusy && !code.trimmingCharacters(in: .whitespaces).isEmpty
+    }
+
+    private func query() async {
+        guard store.loggedIn else {
+            store.needsLogin = true
+            return
+        }
+        let target = code.trimmingCharacters(in: .whitespaces)
+        guard !target.isEmpty else {
+            toast = "先扫一下洗衣机上的二维码，或输入机器码"
+            return
+        }
+        let ok = await store.resolve(code: target)
+        toast = ok ? "已选好 \(store.device?.name ?? "这台洗衣机")" : (store.errorMessage ?? "没查到这台洗衣机")
+    }
+
     // MARK: - 分组
 
     private var accountSection: some View {
@@ -163,7 +187,7 @@ struct LaundryView: View {
         }
     }
 
-    /// 模块内的二级页面入口。以前这三项占了 TabBar，现在只是栈里的一层。
+    /// 模块内的二级页面入口。
     private var navigationSection: some View {
         Section {
             NavigationRow(symbol: "list.bullet.rectangle.portrait",
@@ -193,6 +217,8 @@ struct LaundryView: View {
                     .autocorrectionDisabled()
                     .textInputAutocapitalization(.never)
                     .font(Typography.body)
+                    .submitLabel(.search)
+                    .onSubmit { Task { await query() } }
 
                 Button {
                     if store.loggedIn {
@@ -218,7 +244,7 @@ struct LaundryView: View {
             }
         } footer: {
             Text(store.loggedIn
-                 ? "扫洗衣机身上的二维码，或手动输入机器码。"
+                 ? "扫洗衣机身上的二维码，或手动输入机器码；右上角按钮查询。"
                  : "登录后再扫码，未登录时无法查询机器状态。")
                 .font(Typography.caption2)
                 .foregroundStyle(.tertiary)
@@ -237,34 +263,14 @@ struct LaundryView: View {
         }
     }
 
+    /// 不再读 `store.now`：只按当前时刻判断是否还值得显示，倒计时交给卡片里的
+    /// `TimelineView` 自驱，避免整页每秒重算。
     private var progressOrder: PGOrder? {
         if let running = store.runningOrder { return running }
         if let paid = store.latestPaidOrder, let end = paid.endsAt,
-           end.timeIntervalSince(store.now) > -300 {
+           end.timeIntervalSinceNow > -300 {
             return paid
         }
         return nil
-    }
-
-    private var bottomBar: some View {
-        GlassBottomBar {
-            Button {
-                if store.loggedIn {
-                    let target = code
-                    Task { _ = await store.resolve(code: target) }
-                } else {
-                    store.needsLogin = true
-                }
-            } label: {
-                HStack(spacing: Spacing.s) {
-                    if store.isBusy {
-                        ProgressView().tint(.white)
-                    }
-                    Text(store.isBusy ? store.busyText : (store.loggedIn ? "查询这台洗衣机" : "登录后查询"))
-                }
-            }
-            .buttonStyle(GlassButtonStyle(role: .primary))
-            .disabled(store.isBusy || code.trimmingCharacters(in: .whitespaces).isEmpty)
-        }
     }
 }

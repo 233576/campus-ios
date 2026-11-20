@@ -2,80 +2,89 @@ import SwiftUI
 
 /// 正在洗涤的倒计时卡片。
 ///
-/// 数据只来自 `/order/list` 的 `createTime` + `markMinutes`（官方没有「剩余时间」接口），
-/// 每秒由 `AppStore.now` 驱动重算，进程被杀、App 退到后台再回来都能接上。
+/// 数据只来自 `/order/list` 的 `createTime` + `markMinutes`（官方没有「剩余时间」接口）。
+/// 时间由卡片自己的 `TimelineView` 每秒推进，不再由父页面传入 `store.now` ——
+/// 父页面因此不会被每秒的计时回调带着重算整张列表。
 struct WashProgressCard: View {
     var order: PGOrder
-    var now: Date
     var alert: DeviceAlert? = nil
 
-    private var remaining: TimeInterval { order.remaining(now: now) }
-    private var isDone: Bool { remaining <= 0 }
-    private var tint: Color { isDone ? Flat.green : Flat.accent }
-
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        TimelineView(.periodic(from: .now, by: 1)) { context in
+            content(now: context.date)
+        }
+        .padding(18)
+        .flatCard()
+    }
+
+    private func content(now: Date) -> some View {
+        let remaining = order.remaining(now: now)
+        let isDone = remaining <= 0
+        let tint: Color = isDone ? Color.appSuccess : Color.appBrand
+
+        return VStack(alignment: .leading, spacing: 14) {
             if let alert {
                 alertBar(alert)
             }
 
             HStack(spacing: 12) {
-                FlatStatusMark(symbol: isDone ? "checkmark" : "drop.fill", tint: tint, size: 44)
+                AppIconCircle(symbol: isDone ? "checkmark" : "drop.fill",
+                              tint: tint,
+                              size: Spacing.iconCircleLarge)
 
                 VStack(alignment: .leading, spacing: 3) {
                     Text(isDone ? "洗好了" : "正在洗涤")
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(Flat.textPrimary)
+                        .font(Typography.subheadline.weight(.semibold))
+                        .foregroundStyle(Color.primary)
                     Text(subtitle)
-                        .font(.caption)
-                        .foregroundStyle(Flat.textSecondary)
+                        .font(Typography.caption)
+                        .foregroundStyle(.secondary)
                         .lineLimit(1)
                 }
 
                 Spacer(minLength: 8)
 
                 Text("\(order.minutes) 分钟")
-                    .font(.caption.weight(.medium))
-                    .foregroundStyle(Flat.textTertiary)
+                    .font(Typography.caption.weight(.medium))
+                    .foregroundStyle(.tertiary)
             }
 
             HStack(alignment: .firstTextBaseline, spacing: 6) {
                 Text(order.remainingText(now: now))
                     .font(Typography.pageTitle.weight(.semibold))
                     .monospacedDigit()
-                    .foregroundStyle(isDone ? Flat.green : Flat.textPrimary)
+                    .foregroundStyle(isDone ? Color.appSuccess : Color.primary)
                 Text(isDone ? "已完成" : "后洗好")
-                    .font(.subheadline)
-                    .foregroundStyle(Flat.textSecondary)
+                    .font(Typography.subheadline)
+                    .foregroundStyle(.secondary)
                 Spacer(minLength: 0)
                 Text(order.finishText(now: now))
-                    .font(.footnote)
-                    .foregroundStyle(Flat.textTertiary)
+                    .font(Typography.footnote)
+                    .foregroundStyle(.tertiary)
             }
 
             FlatProgressBar(progress: order.progress(now: now), tint: tint, height: 8)
 
             HStack(spacing: 6) {
                 Image(systemName: "clock")
-                    .font(.caption2)
+                    .font(Typography.caption2)
                 Text(order.createTime.isEmpty ? "—" : "开始于 \(order.createTime)")
-                    .font(.caption2)
+                    .font(Typography.caption2)
                 Spacer(minLength: 0)
                 if !order.orderNo.isEmpty {
                     Text(order.orderNo)
-                        .font(.caption2.monospaced())
+                        .font(Typography.caption2.monospaced())
                         .lineLimit(1)
                 }
             }
-            .foregroundStyle(Flat.textTertiary)
+            .foregroundStyle(.tertiary)
         }
-        .padding(18)
-        .flatCard()
     }
 
     /// 「设备异常，已暂停」这类服务端提示，样式比照官方 App 顶部那条蓝色横幅。
     private func alertBar(_ alert: DeviceAlert) -> some View {
-        let tint = alert.isWarning ? Flat.orange : Flat.accent
+        let tint: Color = alert.isWarning ? Color.appWarning : Color.appBrand
+
         return HStack(alignment: .top, spacing: 10) {
             Image(systemName: alert.isWarning ? "exclamationmark.triangle.fill" : "info.circle.fill")
                 .font(Typography.subheadline.weight(.semibold))
@@ -84,15 +93,15 @@ struct WashProgressCard: View {
             VStack(alignment: .leading, spacing: 3) {
                 Text(alert.title)
                     .font(Typography.subheadline.weight(.semibold))
-                    .foregroundStyle(Flat.textPrimary)
+                    .foregroundStyle(Color.primary)
                 Text(alert.detail)
                     .font(Typography.caption)
-                    .foregroundStyle(Flat.textSecondary)
+                    .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
                 if alert.isWarning {
                     Text("检查洗衣机门是否关紧；仍然异常就联系商家点「故障上报」。")
                         .font(Typography.caption2)
-                        .foregroundStyle(Flat.textTertiary)
+                        .foregroundStyle(.tertiary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
@@ -100,11 +109,11 @@ struct WashProgressCard: View {
         }
         .padding(12)
         .background(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
+            RoundedRectangle(cornerRadius: Radius.m, style: .continuous)
                 .fill(tint.opacity(0.12))
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
+            RoundedRectangle(cornerRadius: Radius.m, style: .continuous)
                 .strokeBorder(tint.opacity(0.35), lineWidth: 1)
         )
     }

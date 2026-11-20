@@ -10,7 +10,7 @@ import UIKit
 /// 4. 认证方式（内置网页 / 网页表单登录）
 /// 5. 连接日志
 ///
-/// 上报设备宫格、自动守护、技术参数都搬去设置页，主页不再重复。
+/// 「立即认证」上移到导航栏右上角，页面底部不再有通栏按钮。
 struct CampusNetHomeView: View {
     @EnvironmentObject var store: CampusNetStore
 
@@ -29,12 +29,12 @@ struct CampusNetHomeView: View {
         .appNavigation(title: "GiWiFi 助手", subtitle: "校园网 · 一键认证")
         .toolbarBackground(.automatic, for: .navigationBar)
         .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
+            ToolbarItemGroup(placement: .topBarTrailing) {
+                authenticateButton
                 GlassToolbarLink(symbol: "gearshape", label: "校园网设置", value: CampusRoute.settings)
             }
         }
         .refreshable { await store.refreshState() }
-        .safeAreaInset(edge: .bottom, spacing: 0) { bottomBar }
         .appToast($toast)
         .sheet(isPresented: $showAccounts) {
             AccountsView(isPicker: true).environmentObject(store)
@@ -69,6 +69,32 @@ struct CampusNetHomeView: View {
                 Text(store.detail)
             }
         }
+    }
+
+    // MARK: - 导航栏认证按钮
+
+    private var canAuthenticate: Bool {
+        !store.settings.username.isEmpty && store.state != .connecting
+    }
+
+    private var authenticateButton: some View {
+        Button {
+            Task { await authenticate() }
+        } label: {
+            Group {
+                if store.state == .connecting {
+                    ProgressView().controlSize(.small)
+                } else {
+                    Image(systemName: "bolt.horizontal.fill")
+                        .font(Typography.body)
+                        .foregroundStyle(Color.appBrand)
+                }
+            }
+            .frame(width: Spacing.rowMinHeight, height: Spacing.rowMinHeight)
+        }
+        .accessibilityLabel("立即认证")
+        .disabled(!canAuthenticate)
+        .opacity(canAuthenticate ? 1 : 0.4)
     }
 
     // MARK: - 并排动作（原地执行）
@@ -133,25 +159,6 @@ struct CampusNetHomeView: View {
         }
     }
 
-    // MARK: - 底部主按钮
-
-    private var bottomBar: some View {
-        GlassBottomBar {
-            Button {
-                Task { await authenticate() }
-            } label: {
-                HStack(spacing: Spacing.s) {
-                    if store.state == .connecting {
-                        ProgressView().tint(.white)
-                    }
-                    Text(buttonTitle)
-                }
-            }
-            .buttonStyle(GlassButtonStyle(role: .primary))
-            .disabled(store.state == .connecting || store.settings.username.isEmpty)
-        }
-    }
-
     // MARK: - 动作
 
     private func check() async {
@@ -179,6 +186,8 @@ struct CampusNetHomeView: View {
             toast = error
         } else if store.state == .online {
             toast = "认证成功"
+        } else {
+            toast = "认证请求已提交"
         }
     }
 
@@ -203,13 +212,5 @@ struct CampusNetHomeView: View {
     func openPortal() {
         store.clearError()
         showingPortalWeb = true
-    }
-
-    private var buttonTitle: String {
-        switch store.state {
-        case .online: return "重新认证"
-        case .connecting: return "认证中…"
-        default: return "立即认证"
-        }
     }
 }
