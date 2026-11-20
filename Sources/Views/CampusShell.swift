@@ -22,7 +22,7 @@ enum CampusSection: String, CaseIterable, Identifiable {
     }
 }
 
-/// 校园助手主壳：内容区 + 悬浮底部胶囊（洗衣 / 校园网）。
+/// 校园助手主壳：内容区 + 悬浮底部液态玻璃胶囊（洗衣 / 校园网）。
 ///
 /// 切换规则：
 /// - 只有访问过的板块才会被实例化，之后一直留在视图树里（滚动位置、输入框都保住）。
@@ -35,6 +35,8 @@ struct CampusShell: View {
     @State private var section: CampusSection = .laundry
     @State private var visited: Set<CampusSection> = [.laundry]
     @Namespace private var indicator
+
+    private let barHeight: CGFloat = 46
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -68,7 +70,6 @@ struct CampusShell: View {
         }
     }
 
-    /// iOS 26 那种悬浮胶囊：一条细长的玻璃，选中项是一小块浅色底，图标在上文字在下。
     private var tabBar: some View {
         HStack(spacing: 2) {
             ForEach(CampusSection.allCases) { item in
@@ -76,40 +77,32 @@ struct CampusShell: View {
                 Button {
                     select(item)
                 } label: {
-                    VStack(spacing: 3) {
+                    VStack(spacing: 2) {
                         Image(systemName: item.symbol)
-                            .font(.system(size: 19, weight: .semibold))
-                            .frame(height: 21)
+                            .font(.system(size: 16, weight: .semibold))
+                            .frame(height: 18)
                         Text(item.title)
-                            .font(.system(size: 10, weight: .medium))
+                            .font(.system(size: 9, weight: .medium))
                     }
                     .foregroundStyle(selected ? Flat.accent : Flat.textSecondary)
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 5)
+                    .padding(.vertical, 4)
                     .background {
                         if selected {
-                            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            RoundedRectangle(cornerRadius: 12, style: .continuous)
                                 .fill(Flat.accent.opacity(0.12))
                                 .matchedGeometryEffect(id: "sectionIndicator", in: indicator)
                         }
                     }
-                    .contentShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    .contentShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                 }
                 .buttonStyle(CampusTabButtonStyle())
             }
         }
-        .padding(.horizontal, 6)
-        .padding(.vertical, 5)
-        .background {
-            GlassCapsuleBacking()
-        }
-        .overlay {
-            Capsule(style: .continuous)
-                .strokeBorder(Flat.glassEdge, lineWidth: 0.8)
-        }
-        .clipShape(Capsule(style: .continuous))
-        .shadow(color: Flat.glassShadow, radius: 18, x: 0, y: 8)
-        .padding(.horizontal, 40)
+        .padding(.horizontal, 4)
+        .frame(height: barHeight - 8)
+        .liquidGlass(radius: (barHeight - 8) / 2, strength: 16, edgeWidth: 14)
+        .padding(.horizontal, 52)
         .padding(.bottom, 6)
     }
 }
@@ -120,28 +113,5 @@ private struct CampusTabButtonStyle: ButtonStyle {
         configuration.label
             .scaleEffect(configuration.isPressed ? 0.94 : 1)
             .animation(.spring(response: 0.22, dampingFraction: 0.9), value: configuration.isPressed)
-    }
-}
-
-/// 悬浮胶囊的玻璃背板：材质模糊 + 极薄底 + 顶部光泽。
-///
-/// 顺序很关键 —— 先材质（折射背后的内容），再压一层几乎透明的底色（把模糊压成磨砂），
-/// 最后一道自上而下的白，做出玻璃的厚度。三层都是动态色，暗色下自动减薄。
-struct GlassCapsuleBacking: View {
-    var body: some View {
-        ZStack {
-            Capsule(style: .continuous)
-                .fill(.ultraThinMaterial)
-            Capsule(style: .continuous)
-                .fill(Flat.surface.opacity(0.72))
-            Capsule(style: .continuous)
-                .fill(
-                    LinearGradient(
-                        colors: [Flat.sheenTop.opacity(0.9), Color.clear],
-                        startPoint: .top,
-                        endPoint: .center
-                    )
-                )
-        }
     }
 }
