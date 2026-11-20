@@ -14,37 +14,112 @@ extension Color {
     }
 }
 
-/// 扁平风格色板：纯色面、细描边、无毛玻璃、无投影。
+/// 浅色 + 液态玻璃的色板。
+///
+/// 命名沿用 `Flat`，这样所有界面不用改调用点就整体换皮。
+/// 底色不是纯白 —— 纯白上的玻璃看不出玻璃；用一层极浅的冷白 + 三团低饱和光晕，
+/// 玻璃压上去才有折射和厚度。
 enum Flat {
-    static let background = Color(hex: 0x0E0F12)
-    static let surface = Color(hex: 0x1A1C20)
-    static let surfaceHigh = Color(hex: 0x23262B)
-    static let surfaceLow = Color(hex: 0x141619)
+    /// 页面底色（冷白，略低于纯白，给玻璃留出对比）。
+    static let background = Color(hex: 0xF3F5F8)
+    /// 玻璃卡的基色（在 `.ultraThinMaterial` 之上再叠一层，控制通透度）。
+    static let surface = Color.white.opacity(0.55)
+    static let surfaceHigh = Color.white.opacity(0.72)
+    static let surfaceLow = Color.white.opacity(0.38)
 
-    static let stroke = Color.white.opacity(0.07)
-    static let strokeStrong = Color.white.opacity(0.13)
+    /// 玻璃边缘：亮描边，模拟玻璃的折光边。
+    static let stroke = Color.white.opacity(0.70)
+    static let strokeStrong = Color.white.opacity(0.92)
+    /// 浅色下真正需要的那条"阴影线"（玻璃底部的厚度感）。
+    static let hairline = Color.black.opacity(0.06)
 
-    static let accent = Color(hex: 0x3B82F6)
-    static let green = Color(hex: 0x22C55E)
-    static let orange = Color(hex: 0xF59E0B)
-    static let red = Color(hex: 0xEF4444)
-    static let purple = Color(hex: 0x8B5CF6)
-    static let cyan = Color(hex: 0x06B6D4)
+    static let accent = Color(hex: 0x2F6BFF)
+    static let green = Color(hex: 0x12A150)
+    static let orange = Color(hex: 0xE08600)
+    static let red = Color(hex: 0xE03C3C)
+    static let purple = Color(hex: 0x7A4DFF)
+    static let cyan = Color(hex: 0x0EA5B7)
 
-    static let cardRadius: CGFloat = 16
-    static let controlRadius: CGFloat = 12
-    static let fieldRadius: CGFloat = 10
+    static let cardRadius: CGFloat = 22
+    static let controlRadius: CGFloat = 16
+    static let fieldRadius: CGFloat = 14
 
-    static let textPrimary = Color.white.opacity(0.94)
-    static let textSecondary = Color.white.opacity(0.58)
-    static let textTertiary = Color.white.opacity(0.36)
+    static let textPrimary = Color(hex: 0x14161A).opacity(0.92)
+    static let textSecondary = Color(hex: 0x14161A).opacity(0.56)
+    static let textTertiary = Color(hex: 0x14161A).opacity(0.34)
+
+    /// 玻璃的投影：浅色背景上必须非常淡，否则立刻变"卡片堆"。
+    static let glassShadow = Color.black.opacity(0.08)
+    /// 玻璃顶部的高光渐变。
+    static let specular = LinearGradient(
+        colors: [Color.white.opacity(0.95), Color.white.opacity(0.12)],
+        startPoint: .top,
+        endPoint: .bottom
+    )
 }
 
 // MARK: - 背景
 
+/// 冷白底 + 三团极淡光晕，玻璃层压上去才有折射。
 struct FlatBackground: View {
     var body: some View {
-        Flat.background.ignoresSafeArea()
+        ZStack {
+            Flat.background
+            Circle()
+                .fill(Flat.accent.opacity(0.20))
+                .frame(width: 440, height: 440)
+                .blur(radius: 130)
+                .offset(x: -150, y: -300)
+            Circle()
+                .fill(Flat.cyan.opacity(0.18))
+                .frame(width: 380, height: 380)
+                .blur(radius: 140)
+                .offset(x: 170, y: -50)
+            Circle()
+                .fill(Flat.purple.opacity(0.14))
+                .frame(width: 460, height: 460)
+                .blur(radius: 150)
+                .offset(x: -80, y: 320)
+        }
+        .ignoresSafeArea()
+    }
+}
+
+// MARK: - 玻璃层
+
+/// 一块玻璃：材质模糊 + 白色薄涂 + 顶部镜面高光 + 亮边 + 极淡投影。
+struct GlassLayer: ViewModifier {
+    var radius: CGFloat
+    var tint: Color?
+    var base: Color?
+
+    func body(content: Content) -> some View {
+        let shape = RoundedRectangle(cornerRadius: radius, style: .continuous)
+        content
+            .background {
+                ZStack {
+                    shape.fill(.ultraThinMaterial)
+                    if let base {
+                        shape.fill(base)
+                    }
+                    if let tint {
+                        shape.fill(tint.opacity(0.16))
+                    }
+                    shape.fill(
+                        LinearGradient(
+                            colors: [Color.white.opacity(0.55), Color.white.opacity(0.24)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                }
+            }
+            .overlay {
+                // 顶部亮、底部收 —— 这一层就是"玻璃边"的来源
+                shape.strokeBorder(Flat.specular, lineWidth: 1)
+            }
+            .clipShape(shape)
+            .shadow(color: Flat.glassShadow, radius: 18, x: 0, y: 10)
     }
 }
 
@@ -53,27 +128,27 @@ struct FlatBackground: View {
 struct FlatCardModifier: ViewModifier {
     var radius: CGFloat = Flat.cardRadius
     var fill: Color = Flat.surface
+    var tint: Color? = nil
 
     func body(content: Content) -> some View {
-        content
-            .background {
-                RoundedRectangle(cornerRadius: radius, style: .continuous)
-                    .fill(fill)
-                    .overlay {
-                        RoundedRectangle(cornerRadius: radius, style: .continuous)
-                            .strokeBorder(Flat.stroke, lineWidth: 1)
-                    }
-            }
+        content.modifier(
+            GlassLayer(radius: radius, tint: tint, base: fill)
+        )
     }
 }
 
 extension View {
-    /// 扁平卡片：纯色面 + 1px 细描边，无阴影。
+    /// 液态玻璃卡片。
     func flatCard(radius: CGFloat = Flat.cardRadius, fill: Color = Flat.surface) -> some View {
         modifier(FlatCardModifier(radius: radius, fill: fill))
     }
 
-    /// 内凹的输入框/内容块。
+    /// 带色调的玻璃卡（用于状态块：在线绿、异常橙）。
+    func tintedCard(_ tint: Color, radius: CGFloat = Flat.cardRadius) -> some View {
+        modifier(FlatCardModifier(radius: radius, fill: Flat.surface, tint: tint))
+    }
+
+    /// 内嵌输入框：比卡片更薄、更"凹"，用一层浅色玻璃表达可输入。
     func flatField(radius: CGFloat = Flat.fieldRadius,
                    fill: Color = Flat.surfaceLow) -> some View {
         modifier(FlatFieldModifier(radius: radius, fill: fill))
@@ -86,43 +161,74 @@ struct FlatFieldModifier: ViewModifier {
 
     func body(content: Content) -> some View {
         content
-            .padding(.horizontal, 12)
-            .padding(.vertical, 11)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 12)
             .background {
-                RoundedRectangle(cornerRadius: radius, style: .continuous)
-                    .fill(fill)
-                    .overlay {
-                        RoundedRectangle(cornerRadius: radius, style: .continuous)
-                            .strokeBorder(Flat.stroke, lineWidth: 1)
-                    }
+                let shape = RoundedRectangle(cornerRadius: radius, style: .continuous)
+                ZStack {
+                    shape.fill(.thinMaterial)
+                    shape.fill(Color.white.opacity(0.30))
+                }
             }
+            .overlay {
+                RoundedRectangle(cornerRadius: radius, style: .continuous)
+                    .strokeBorder(Color.black.opacity(0.05), lineWidth: 1)
+            }
+            .clipShape(RoundedRectangle(cornerRadius: radius, style: .continuous))
     }
 }
 
 // MARK: - 按钮
 
-/// 扁平按钮：`filled` 为实心主按钮（强调色底、白字），否则为次级按钮（面色 + 描边）。
+/// 主按钮 = 实色渐变 + 顶部高光；次级按钮 = 玻璃 + 亮边。
+/// 按下立刻缩到 0.96（不等点击完成才给反馈），松手用短弹簧回位。
 struct FlatButtonStyle: ButtonStyle {
     var tint: Color = Flat.accent
     var filled: Bool = false
     var radius: CGFloat = Flat.controlRadius
-    var height: CGFloat = 48
+    var height: CGFloat = 50
 
     func makeBody(configuration: Configuration) -> some View {
+        let shape = RoundedRectangle(cornerRadius: radius, style: .continuous)
         configuration.label
             .frame(maxWidth: .infinity)
             .frame(height: height)
             .foregroundStyle(filled ? Color.white : Flat.textPrimary)
             .background {
-                RoundedRectangle(cornerRadius: radius, style: .continuous)
-                    .fill(filled ? tint : Flat.surfaceHigh)
-                    .overlay {
-                        RoundedRectangle(cornerRadius: radius, style: .continuous)
-                            .strokeBorder(filled ? Color.clear : Flat.strokeStrong, lineWidth: 1)
+                ZStack {
+                    if filled {
+                        shape.fill(
+                            LinearGradient(
+                                colors: [tint.opacity(0.92), tint],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                        )
+                        shape.fill(
+                            LinearGradient(
+                                colors: [Color.white.opacity(0.28), Color.clear],
+                                startPoint: .top,
+                                endPoint: .center
+                            )
+                        )
+                    } else {
+                        shape.fill(.ultraThinMaterial)
+                        shape.fill(Color.white.opacity(0.55))
                     }
+                }
             }
-            .opacity(configuration.isPressed ? 0.72 : 1)
-            .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
+            .overlay {
+                shape.strokeBorder(
+                    filled ? Color.white.opacity(0.34) : Flat.stroke,
+                    lineWidth: 1
+                )
+            }
+            .clipShape(shape)
+            .shadow(color: filled ? tint.opacity(0.28) : Flat.glassShadow,
+                    radius: filled ? 14 : 10,
+                    x: 0, y: filled ? 8 : 5)
+            .scaleEffect(configuration.isPressed ? 0.96 : 1)
+            .animation(.spring(response: 0.24, dampingFraction: 0.86), value: configuration.isPressed)
     }
 }
 
@@ -133,16 +239,25 @@ struct FlatPill: ViewModifier {
     var tint: Color = Flat.accent
 
     func body(content: Content) -> some View {
+        let shape = Capsule(style: .continuous)
         content
             .background {
-                Capsule(style: .continuous)
-                    .fill(selected ? tint.opacity(0.18) : Flat.surfaceHigh)
-                    .overlay {
-                        Capsule(style: .continuous)
-                            .strokeBorder(selected ? tint.opacity(0.55) : Flat.strokeStrong,
-                                          lineWidth: 1)
+                ZStack {
+                    shape.fill(.ultraThinMaterial)
+                    shape.fill(Color.white.opacity(selected ? 0.30 : 0.50))
+                    if selected {
+                        shape.fill(tint.opacity(0.18))
                     }
+                }
             }
+            .overlay {
+                shape.strokeBorder(
+                    selected ? tint.opacity(0.55) : Color.white.opacity(0.85),
+                    lineWidth: 1
+                )
+            }
+            .clipShape(shape)
+            .shadow(color: Flat.glassShadow.opacity(0.6), radius: 6, x: 0, y: 3)
     }
 }
 
@@ -154,7 +269,7 @@ extension View {
 
 // MARK: - 状态标识
 
-/// 扁平状态块：纯色圆底 + 图标，颜色表达状态。
+/// 玻璃圆环 + 图标；颜色表达状态。
 struct FlatStatusMark: View {
     var symbol: String
     var tint: Color
@@ -162,28 +277,36 @@ struct FlatStatusMark: View {
 
     var body: some View {
         ZStack {
+            Circle().fill(.ultraThinMaterial)
             Circle().fill(tint.opacity(0.16))
-            Circle().strokeBorder(tint.opacity(0.35), lineWidth: 1)
+            Circle().strokeBorder(Flat.specular, lineWidth: 1)
             Image(systemName: symbol)
-                .font(.system(size: size * 0.42, weight: .semibold))
+                .font(.system(size: size * 0.40, weight: .semibold))
                 .foregroundStyle(tint)
         }
         .frame(width: size, height: size)
+        .shadow(color: tint.opacity(0.18), radius: 12, y: 6)
     }
 }
 
-/// 细进度条（扁平版：纯色轨道 + 纯色填充）。
+/// 细进度条：浅色轨道 + 渐变填充。
 struct FlatProgressBar: View {
     var progress: Double
     var tint: Color
-    var height: CGFloat = 4
+    var height: CGFloat = 5
 
     var body: some View {
         GeometryReader { proxy in
             ZStack(alignment: .leading) {
-                Capsule().fill(Color.white.opacity(0.08))
+                Capsule().fill(Color.black.opacity(0.07))
                 Capsule()
-                    .fill(tint)
+                    .fill(
+                        LinearGradient(
+                            colors: [tint.opacity(0.75), tint],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
                     .frame(width: max(4, proxy.size.width * min(1, max(0, progress))))
             }
         }
@@ -215,7 +338,7 @@ struct FlatDivider: View {
 
     var body: some View {
         Rectangle()
-            .fill(Flat.stroke)
+            .fill(Flat.hairline)
             .frame(height: 1)
             .padding(.leading, inset)
     }
