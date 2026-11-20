@@ -68,7 +68,6 @@ struct CampusShell: View {
 
     private var tabBar: some View {
         VStack(spacing: 0) {
-            FlatDivider()
             HStack(spacing: 0) {
                 ForEach(CampusSection.allCases) { item in
                     tabButton(item)
@@ -76,9 +75,13 @@ struct CampusShell: View {
             }
             .frame(height: 48)
             .padding(.top, 4)
-            .background(GlassPalette.surface)
         }
-        .background(GlassPalette.surface)
+        .background(.ultraThinMaterial)
+        .overlay(alignment: .top) {
+            Rectangle()
+                .fill(Color.white.opacity(0.30))
+                .frame(height: 0.5)
+        }
     }
 
     private func tabButton(_ item: CampusSection) -> some View {
