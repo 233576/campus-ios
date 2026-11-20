@@ -12,13 +12,16 @@ struct FloatingTabItem<Tab: Hashable>: Identifiable {
 
 /// 悬空胶囊底栏。
 ///
-/// 与系统 TabBar 的区别：左右留边、底部留边、26 圆角，内容从它下方滚过。
+/// 材质只有一层：iOS 26 用 `.glassEffect(.regular.interactive(), …)`，交互形变与
+/// 边缘折射都由系统玻璃产生；玻璃上方不叠任何 `Color` / `.ultraThinMaterial`，
+/// 叠上去就等于把玻璃盖死，暗色下会变成一块深灰板。
 ///
-/// 版本要求里明确禁掉的三件事，这里一件都没做：不加 `.shadow`（离屏渲染）、
-/// 不加 `.blur`、不用不透明纯色底（那样内容透不出来，就没有悬空感）。
+/// 悬空感靠三件事，不靠投影：左右 20 / 底部 8 的留边、26 圆角、内容从下方透出。
 struct FloatingTabBar<Tab: Hashable>: View {
     var items: [FloatingTabItem<Tab>]
     @Binding var selection: Tab
+
+    @Environment(\.colorScheme) private var colorScheme
 
     /// 选中态小胶囊的内边距 —— 紧贴内容，不铺满半条底栏。
     private let chipHorizontal: CGFloat = 14
@@ -32,8 +35,11 @@ struct FloatingTabBar<Tab: Hashable>: View {
         }
         .frame(height: FloatingTabBarMetrics.barHeight)
         .background { surface }
+        .overlay { edgeHighlight }
         .padding(.horizontal, FloatingTabBarMetrics.horizontalInset)
         .padding(.bottom, FloatingTabBarMetrics.bottomInset)
+        .animation(.spring(response: 0.4, dampingFraction: 0.65, blendDuration: 0.3),
+                   value: selection)
     }
 
     private func button(_ item: FloatingTabItem<Tab>) -> some View {
@@ -47,6 +53,7 @@ struct FloatingTabBar<Tab: Hashable>: View {
             VStack(spacing: Spacing.xxs) {
                 Image(systemName: item.symbol)
                     .font(Typography.title2)
+                    .symbolEffect(.bounce, value: selected)
                 Text(item.title)
                     .font(Typography.caption2)
             }
@@ -62,12 +69,12 @@ struct FloatingTabBar<Tab: Hashable>: View {
             .frame(maxWidth: .infinity)
             .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(TabPressStyle())
         .accessibilityLabel(item.title)
         .accessibilityAddTraits(selected ? [.isSelected] : [])
     }
 
-    /// 容器材质。Tab 项本身不带任何玻璃 —— 玻璃只能有一层。
+    /// 容器材质：只有玻璃一层，低版本才退到毛玻璃。
     @ViewBuilder
     private var surface: some View {
         let shape = RoundedRectangle(cornerRadius: FloatingTabBarMetrics.cornerRadius,
@@ -86,11 +93,26 @@ struct FloatingTabBar<Tab: Hashable>: View {
     }
 
     private func fallback(shape: RoundedRectangle) -> some View {
-        shape
-            .fill(.ultraThinMaterial)
-            .overlay {
-                shape.strokeBorder(Color.appSeparator, lineWidth: 1)
-            }
+        shape.fill(.ultraThinMaterial)
+    }
+
+    /// 0.5pt 内描边 —— 暗色下玻璃「立起来」的主要视觉线索。
+    private var edgeHighlight: some View {
+        RoundedRectangle(cornerRadius: FloatingTabBarMetrics.cornerRadius, style: .continuous)
+            .strokeBorder(colorScheme == .dark
+                          ? Color.white.opacity(0.08)
+                          : Color.black.opacity(0.06),
+                          lineWidth: 0.5)
+    }
+}
+
+/// Tab 项的按压回弹。这是「Q 弹」手感的主要来源。
+struct TabPressStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.92 : 1)
+            .animation(.spring(response: 0.3, dampingFraction: 0.7),
+                       value: configuration.isPressed)
     }
 }
 

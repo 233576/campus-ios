@@ -16,7 +16,9 @@ struct AppList<Content: View>: View {
         }
         .listStyle(.insetGrouped)
         .scrollContentBackground(.hidden)
-        .background(Color.appGroupedBackground)
+        // 底色由容器（CampusShell）统一铺，列表自身透明 ——
+        // 这样底栏玻璃后面的环境光才能透上来。
+        .background(Color.clear)
         .scrollIndicators(.hidden)
         // 悬空 TabBar 用 safeAreaInset 避让，但滚到底时最后一行仍要能和底栏拉开距离，
         // 否则「连接日志」这类末行会贴着胶囊下沿。

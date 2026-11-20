@@ -21,6 +21,11 @@ struct CampusShell: View {
 
     var body: some View {
         ZStack {
+            Color.appGroupedBackground
+                .ignoresSafeArea()
+
+            ambientGlow
+
             laundryRoot
                 .opacity(tab == .laundry ? 1 : 0)
                 .allowsHitTesting(tab == .laundry)
@@ -32,11 +37,27 @@ struct CampusShell: View {
                 .accessibilityHidden(tab != .campusNet)
         }
         .tint(.appBrand)
-        .safeAreaInset(edge: .bottom, spacing: 0) {
+        // 用 overlay 而不是 safeAreaInset：底栏必须叠在滚动内容之上，
+        // 内容才会从玻璃下方穿过去，玻璃才有东西可折射。
+        .overlay(alignment: .bottom) {
             if showsTabBar {
                 FloatingTabBar(items: AppTab.items, selection: $tab)
             }
         }
+    }
+
+    /// 底部一团极淡的环境光。不是装饰 —— 暗色下页面底色接近黑，
+    /// 玻璃在纯色上采样不到任何东西，看起来就是一块死灰板。
+    private var ambientGlow: some View {
+        GeometryReader { proxy in
+            Ellipse()
+                .fill(Color.accentColor.opacity(0.12))
+                .frame(width: 300, height: 300)
+                .blur(radius: 80)
+                .position(x: proxy.size.width / 2, y: proxy.size.height + 40)
+        }
+        .allowsHitTesting(false)
+        .ignoresSafeArea()
     }
 
     // MARK: - 两个模块
