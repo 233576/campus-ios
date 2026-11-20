@@ -274,14 +274,14 @@ struct AccountEditorView: View {
             if secure {
                 SecureField(placeholder, text: text)
                     .textContentType(.password)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(Flat.textPrimary)
             } else {
                 TextField(placeholder, text: text)
                     .keyboardType(.numbersAndPunctuation)
                     .textContentType(.username)
                     .autocorrectionDisabled()
                     .textInputAutocapitalization(.never)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(Flat.textPrimary)
             }
         }
         .flatField()
