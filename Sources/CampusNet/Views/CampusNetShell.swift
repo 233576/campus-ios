@@ -64,7 +64,7 @@ struct CampusNetShell: View {
         .padding(2)
         .frame(height: 34)
         .background(GlassPalette.surfaceHigh)
-        .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
         .padding(.horizontal, 16)
         .padding(.top, 8)
         .padding(.bottom, 4)
@@ -89,9 +89,9 @@ struct CampusNetShell: View {
             .frame(height: 30)
             .background {
                 if selected {
-                    RoundedRectangle(cornerRadius: 7, style: .continuous)
+                    RoundedRectangle(cornerRadius: 6, style: .continuous)
                         .fill(GlassPalette.surface)
-                        .shadow(color: Color.black.opacity(0.06), radius: 2, x: 0, y: 1)
+                        .shadow(color: Color.black.opacity(0.10), radius: 3, x: 0, y: 1)
                 }
             }
             .contentShape(Rectangle())
