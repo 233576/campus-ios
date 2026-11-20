@@ -1,7 +1,9 @@
 import SwiftUI
 import UIKit
 
-/// 设置页：账号、支付方式、自动刷新、接口信息、关于。
+/// 设置页：账号、支付方式、自动检测、接口信息、关于。
+///
+/// 全部走 AppList Section，卡片嵌套层级归零；支付方式改标准 List 单选行。
 struct LaundrySettingsView: View {
     @EnvironmentObject private var store: LaundryStore
 
@@ -10,22 +12,14 @@ struct LaundrySettingsView: View {
     @State private var copiedToken: String?
 
     var body: some View {
-        ZStack {
-            FlatBackground()
-
-            ScrollView {
-                VStack(spacing: 14) {
-                    header
-                    accountCard
-                    payCard
-                    refreshCard
-                    endpointCard
-                    aboutCard
-                }
-                .padding(.horizontal, 16)
-                .padding(.bottom, 16)
-            }
+        AppList {
+            accountSection
+            paySection
+            refreshSection
+            endpointSection
+            aboutSection
         }
+        .appNavigation(title: "洗衣设置")
         .sheet(isPresented: $showingLogin) {
             LoginSheet().environmentObject(store)
         }
@@ -34,199 +28,145 @@ struct LaundrySettingsView: View {
         }
     }
 
-    private var header: some View {
-        VStack(alignment: .leading, spacing: 3) {
-            Text("设置")
-                .font(.system(size: 26, weight: .bold))
-                .foregroundStyle(Flat.textPrimary)
-            Text("只做洗衣机，别的一概不管")
-                .font(.system(size: 12))
-                .foregroundStyle(Flat.textTertiary)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.top, 12)
-    }
+    // MARK: - 账号
 
-    private var accountCard: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            FlatSectionHeader(title: "账号")
-
+    private var accountSection: some View {
+        Section {
             if store.loggedIn {
-                HStack(spacing: 10) {
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text(store.phoneText)
-                            .font(.system(size: 15, weight: .semibold))
-                            .foregroundStyle(Flat.textPrimary)
-                        Text("余额 \(store.user?.balanceText ?? "—")")
-                            .font(.system(size: 12))
-                            .foregroundStyle(Flat.textTertiary)
+                HStack(spacing: Spacing.m) {
+                    AppIconCircle(symbol: "person.fill", tint: .appBrand)
+                    VStack(alignment: .leading, spacing: Spacing.xxs) {
+                        Text(store.phoneText).font(Typography.rowTitle)
+                        Text("余额 \(store.user?.balanceText ?? "—") · 店铺 \(store.shopBalanceText)")
+                            .font(Typography.rowSubtitle)
+                            .foregroundStyle(.secondary)
                     }
-                    Spacer()
-                    Text(store.user?.hasVip == true ? "会员" : "普通")
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundStyle(Flat.accent)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 5)
-                        .flatPill(selected: true)
+                    Spacer(minLength: Spacing.s)
+                    StatusBadge(store.user?.hasVip == true ? "会员" : "普通",
+                                kind: store.user?.hasVip == true ? .brand : .neutral)
                 }
+                .padding(.vertical, Spacing.xxs)
 
-                Button {
-                    store.logout()
-                } label: {
-                    Text("退出登录")
-                        .font(.system(size: 14, weight: .semibold))
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(FlatButtonStyle(tint: Flat.red, filled: false, height: 44))
+                Button("退出登录", role: .destructive) { store.logout() }
+                    .font(Typography.body)
             } else {
-                Text("还没有登录。登录一次，之后打开 App 会自动检测状态。")
-                    .font(.system(size: 12))
-                    .foregroundStyle(Flat.textTertiary)
-                Button {
-                    showingLogin = true
-                } label: {
-                    Text("手机号登录")
-                        .font(.system(size: 15, weight: .semibold))
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(FlatButtonStyle(tint: Flat.accent, filled: true, height: 46))
+                Button("手机号登录") { showingLogin = true }
+                    .font(Typography.headline)
+                    .frame(maxWidth: .infinity, minHeight: Spacing.rowMinHeight)
             }
+        } header: {
+            Text("账号")
+        } footer: {
+            Text(store.loggedIn
+                 ? "登录凭证存在钥匙串，重新打开 App 会自动恢复。"
+                 : "还没有登录。登录一次，之后打开 App 会自动检测状态。")
+                .font(Typography.caption2)
         }
-        .padding(16)
-        .flatCard()
     }
 
-    private var payCard: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            FlatSectionHeader(title: "默认支付方式")
-            VStack(spacing: 8) {
-                payOption(title: "微信支付", detail: "下单后出微信付款码 / 唤起微信",
-                          tint: Flat.green, icon: "message.fill",
-                          type: PGProtocol.payTypeWeChat)
-                payOption(title: "支付宝", detail: "下单后出支付宝付款码",
-                          tint: Flat.accent, icon: "a.circle.fill",
-                          type: PGProtocol.payTypeAlipay)
-                payOption(title: "余额支付", detail: "直接扣余额，余额 ¥\(store.user?.balanceText ?? "—")",
-                          tint: Flat.orange, icon: "wallet.bifold.fill",
-                          type: PGProtocol.payTypeWallet)
-            }
+    // MARK: - 支付方式
 
-            HStack(spacing: 10) {
-                Button {
-                    showingRecharge = true
-                } label: {
-                    Text("充值店铺余额")
-                        .font(.system(size: 13, weight: .semibold))
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 40)
-                }
-                .buttonStyle(FlatButtonStyle(tint: Flat.orange, filled: false, height: 40))
-            }
+    private var paySection: some View {
+        Section {
+            payRow(title: "微信支付",
+                   detail: "下单后出微信付款码 / 唤起微信",
+                   symbol: "message.fill",
+                   type: PGProtocol.payTypeWeChat)
+            payRow(title: "支付宝",
+                   detail: "下单后出支付宝付款码",
+                   symbol: "a.circle.fill",
+                   type: PGProtocol.payTypeAlipay)
+            payRow(title: "余额支付",
+                   detail: "直接扣余额，余额 ¥\(store.user?.balanceText ?? "—")",
+                   symbol: "wallet.bifold.fill",
+                   type: PGProtocol.payTypeWallet)
 
+            Button("充值店铺余额") { showingRecharge = true }
+                .font(Typography.body)
+                .foregroundStyle(Color.appBrand)
+                .frame(maxWidth: .infinity, minHeight: Spacing.rowMinHeight)
+        } header: {
+            Text("默认支付方式")
+        } footer: {
             Text("支付面板里还能随时换渠道，订单号不变。余额不足时用微信/支付宝扫码即可。")
-                .font(.system(size: 11))
-                .foregroundStyle(Flat.textTertiary)
-                .fixedSize(horizontal: false, vertical: true)
+                .font(Typography.caption2)
         }
-        .padding(16)
-        .flatCard()
     }
 
-    private func payOption(title: String, detail: String, tint: Color,
-                           icon: String, type: Int) -> some View {
+    private func payRow(title: String, detail: String, symbol: String, type: Int) -> some View {
         Button {
             store.setPayType(type)
         } label: {
-            HStack(spacing: 10) {
-                ZStack {
-                    Circle().fill(tint.opacity(0.16)).frame(width: 34, height: 34)
-                    Image(systemName: icon)
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(tint)
-                }
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(title)
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(Flat.textPrimary)
+            HStack(spacing: Spacing.m) {
+                AppIconCircle(symbol: symbol, tint: .appBrand)
+                VStack(alignment: .leading, spacing: Spacing.xxs) {
+                    Text(title).font(Typography.rowTitle)
                     Text(detail)
-                        .font(.system(size: 11))
-                        .foregroundStyle(Flat.textTertiary)
+                        .font(Typography.rowSubtitle)
+                        .foregroundStyle(.secondary)
                 }
-                Spacer()
-                Image(systemName: store.settings.payType == type ? "checkmark.circle.fill" : "circle")
-                    .font(.system(size: 17, weight: .semibold))
-                    .foregroundStyle(store.settings.payType == type ? tint : Flat.textTertiary)
+                Spacer(minLength: Spacing.s)
+                if store.settings.payType == type {
+                    Image(systemName: "checkmark")
+                        .font(Typography.subheadline.weight(.semibold))
+                        .foregroundStyle(Color.appBrand)
+                }
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 10)
-            .background(
-                RoundedRectangle(cornerRadius: Flat.controlRadius, style: .continuous)
-                    .fill(store.settings.payType == type ? tint.opacity(0.10) : Flat.surfaceHigh)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: Flat.controlRadius, style: .continuous)
-                    .strokeBorder(store.settings.payType == type ? tint.opacity(0.45) : Flat.stroke,
-                                  lineWidth: 1)
-            )
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
     }
 
-    private var refreshCard: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            FlatSectionHeader(title: "启动自动检测")
+    // MARK: - 自动检测
+
+    private var refreshSection: some View {
+        Section {
             Toggle(isOn: Binding(
                 get: { store.settings.autoRefresh },
                 set: { store.setAutoRefresh($0) }
             )) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("打开 App 等 2 秒自动查状态")
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundStyle(Flat.textPrimary)
+                VStack(alignment: .leading, spacing: Spacing.xxs) {
+                    Text("打开 App 等 2 秒自动查状态").font(Typography.rowTitle)
                     Text("关掉就只在你手动点的时候刷新")
-                        .font(.system(size: 11))
-                        .foregroundStyle(Flat.textTertiary)
+                        .font(Typography.rowSubtitle)
+                        .foregroundStyle(.secondary)
                 }
             }
-            .tint(Flat.accent)
+        } header: {
+            Text("启动自动检测")
         }
-        .padding(16)
-        .flatCard()
     }
 
-    private var endpointCard: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            FlatSectionHeader(title: "接口信息")
+    // MARK: - 接口信息
+
+    private var endpointSection: some View {
+        Section("接口信息") {
             infoRow("服务地址", PGProtocol.base)
             infoRow("通道", PGProtocol.channel)
             infoRow("客户端版本", "\(PGProtocol.appVersion) (\(PGProtocol.versionCode))")
             infoRow("分类", PGProtocol.categoryCode)
         }
-        .padding(16)
-        .flatCard()
     }
 
     private func infoRow(_ title: String, _ value: String) -> some View {
-        HStack(alignment: .top) {
+        HStack(alignment: .top, spacing: Spacing.m) {
             Text(title)
-                .font(.system(size: 12))
-                .foregroundStyle(Flat.textTertiary)
+                .font(Typography.footnote)
+                .foregroundStyle(.secondary)
                 .frame(width: 78, alignment: .leading)
             Text(value)
-                .font(.system(size: 12))
-                .foregroundStyle(Flat.textSecondary)
+                .font(Typography.footnote)
                 .textSelection(.enabled)
             Spacer(minLength: 0)
         }
+        .padding(.vertical, Spacing.xxs)
     }
 
-    private var aboutCard: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            FlatSectionHeader(title: "关于")
+    // MARK: - 关于
+
+    private var aboutSection: some View {
+        Section {
             infoRow("版本", Self.appVersion)
-            Text("协议参考 Cumpus / wash / baotuquan-light 三个开源项目，只复刻了洗衣机（categoryCode=wash）这一条链路：扫码 → 选套餐 → 下单 → 扫码支付 → 查订单。")
-                .font(.system(size: 11))
-                .foregroundStyle(Flat.textTertiary)
             Button {
                 let token = store.loginToken()
                 guard !token.isEmpty else {
@@ -236,22 +176,24 @@ struct LaundrySettingsView: View {
                 UIPasteboard.general.string = token
                 copiedToken = "已复制 \(token.count) 个字符"
             } label: {
-                Text("复制登录凭证（调试）")
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundStyle(Flat.textSecondary)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 9)
+                HStack {
+                    Text("复制登录凭证（调试）").font(Typography.body)
+                    Spacer()
+                    if let copiedToken {
+                        Text(copiedToken)
+                            .font(Typography.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            .flatField()
-            if let copiedToken {
-                Text(copiedToken)
-                    .font(.system(size: 11))
-                    .foregroundStyle(Flat.textTertiary)
-            }
+        } header: {
+            Text("关于")
+        } footer: {
+            Text("协议参考 Cumpus / wash / baotuquan-light 三个开源项目，只复刻了洗衣机（categoryCode=wash）这一条链路：扫码 → 选套餐 → 下单 → 扫码支付 → 查订单。")
+                .font(Typography.caption2)
         }
-        .padding(16)
-        .flatCard(fill: Flat.surfaceLow)
     }
 
     static var appVersion: String {
