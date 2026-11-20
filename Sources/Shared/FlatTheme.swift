@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 // MARK: - 色板
 
@@ -12,71 +13,148 @@ extension Color {
             opacity: alpha
         )
     }
+
+    /// 跟随系统外观。
+    static func dyn(light: UIColor, dark: UIColor) -> Color {
+        Color(uiColor: UIColor { trait in
+            trait.userInterfaceStyle == .dark ? dark : light
+        })
+    }
+
+    static func dyn(light: UInt32, dark: UInt32,
+                    lightAlpha: Double = 1, darkAlpha: Double = 1) -> Color {
+        .dyn(light: UIColor(Color(hex: light)).withAlphaComponent(lightAlpha),
+             dark: UIColor(Color(hex: dark)).withAlphaComponent(darkAlpha))
+    }
 }
 
-/// 浅色 + 液态玻璃的色板。
+/// 液态玻璃色板，亮/暗两套值都写在同一个色里，跟随系统。
 ///
-/// 命名沿用 `Flat`，这样所有界面不用改调用点就整体换皮。
-/// 底色不是纯白 —— 纯白上的玻璃看不出玻璃；用一层极浅的冷白 + 三团低饱和光晕，
-/// 玻璃压上去才有折射和厚度。
+/// 玻璃要看得出「玻璃」，前提是底下有东西可折射：亮色模式靠冷白 + 低饱和光晕，
+/// 暗色模式靠近黑 + 更明显的彩色光晕。同名的 `Flat.*` 让所有界面不用改调用点。
 enum Flat {
-    /// 页面底色（冷白，略低于纯白，给玻璃留出对比）。
-    static let background = Color(hex: 0xF3F5F8)
-    /// 玻璃卡的基色（在 `.ultraThinMaterial` 之上再叠一层，控制通透度）。
-    static let surface = Color.white.opacity(0.55)
-    static let surfaceHigh = Color.white.opacity(0.72)
-    static let surfaceLow = Color.white.opacity(0.38)
+    // MARK: 底色
 
-    /// 玻璃边缘：亮描边，模拟玻璃的折光边。
-    static let stroke = Color.white.opacity(0.70)
-    static let strokeStrong = Color.white.opacity(0.92)
-    /// 浅色下真正需要的那条"阴影线"（玻璃底部的厚度感）。
-    static let hairline = Color.black.opacity(0.06)
+    static let background = Color.dyn(light: 0xF3F5F8, dark: 0x0B0C10)
 
-    static let accent = Color(hex: 0x2F6BFF)
-    static let green = Color(hex: 0x12A150)
-    static let orange = Color(hex: 0xE08600)
-    static let red = Color(hex: 0xE03C3C)
-    static let purple = Color(hex: 0x7A4DFF)
-    static let cyan = Color(hex: 0x0EA5B7)
+    /// 玻璃卡的白色薄涂（暗色下必须是极淡的一层白，压太厚就发灰）。
+    static let surface = Color.dyn(
+        light: UIColor.white.withAlphaComponent(0.55),
+        dark: UIColor.white.withAlphaComponent(0.06)
+    )
+    static let surfaceHigh = Color.dyn(
+        light: UIColor.white.withAlphaComponent(0.72),
+        dark: UIColor.white.withAlphaComponent(0.10)
+    )
+    static let surfaceLow = Color.dyn(
+        light: UIColor.white.withAlphaComponent(0.38),
+        dark: UIColor.white.withAlphaComponent(0.04)
+    )
+
+    // MARK: 玻璃边缘
+
+    static let stroke = Color.dyn(
+        light: UIColor.white.withAlphaComponent(0.70),
+        dark: UIColor.white.withAlphaComponent(0.14)
+    )
+    static let strokeStrong = Color.dyn(
+        light: UIColor.white.withAlphaComponent(0.92),
+        dark: UIColor.white.withAlphaComponent(0.24)
+    )
+    static let hairline = Color.dyn(
+        light: UIColor.black.withAlphaComponent(0.06),
+        dark: UIColor.white.withAlphaComponent(0.10)
+    )
+
+    // MARK: 强调色（暗色下提亮，保持同样的对比）
+
+    static let accent = Color.dyn(light: 0x2F6BFF, dark: 0x5B8CFF)
+    static let green = Color.dyn(light: 0x12A150, dark: 0x34D07A)
+    static let orange = Color.dyn(light: 0xE08600, dark: 0xFFB33D)
+    static let red = Color.dyn(light: 0xE03C3C, dark: 0xFF6B6B)
+    static let purple = Color.dyn(light: 0x7A4DFF, dark: 0xA98BFF)
+    static let cyan = Color.dyn(light: 0x0EA5B7, dark: 0x37D6E8)
+
+    // MARK: 尺寸
 
     static let cardRadius: CGFloat = 22
     static let controlRadius: CGFloat = 16
     static let fieldRadius: CGFloat = 14
 
-    static let textPrimary = Color(hex: 0x14161A).opacity(0.92)
-    static let textSecondary = Color(hex: 0x14161A).opacity(0.56)
-    static let textTertiary = Color(hex: 0x14161A).opacity(0.34)
+    // MARK: 文字
 
-    /// 玻璃的投影：浅色背景上必须非常淡，否则立刻变"卡片堆"。
-    static let glassShadow = Color.black.opacity(0.08)
-    /// 玻璃顶部的高光渐变。
+    static let textPrimary = Color.dyn(
+        light: UIColor(Color(hex: 0x14161A)).withAlphaComponent(0.92),
+        dark: UIColor.white.withAlphaComponent(0.94)
+    )
+    static let textSecondary = Color.dyn(
+        light: UIColor(Color(hex: 0x14161A)).withAlphaComponent(0.56),
+        dark: UIColor.white.withAlphaComponent(0.58)
+    )
+    static let textTertiary = Color.dyn(
+        light: UIColor(Color(hex: 0x14161A)).withAlphaComponent(0.34),
+        dark: UIColor.white.withAlphaComponent(0.36)
+    )
+
+    // MARK: 玻璃层细节
+
+    /// 玻璃投影：亮色要极淡，暗色要够深才有浮起感。
+    static let glassShadow = Color.dyn(
+        light: UIColor.black.withAlphaComponent(0.08),
+        dark: UIColor.black.withAlphaComponent(0.45)
+    )
+
+    /// 玻璃内部的对角白渐变（上亮下暗 = 厚度）。
+    static let sheenTop = Color.dyn(
+        light: UIColor.white.withAlphaComponent(0.55),
+        dark: UIColor.white.withAlphaComponent(0.10)
+    )
+    static let sheenBottom = Color.dyn(
+        light: UIColor.white.withAlphaComponent(0.24),
+        dark: UIColor.white.withAlphaComponent(0.02)
+    )
+
+    /// 边缘镜面高光（描边自上而下由亮到暗）。
     static let specular = LinearGradient(
-        colors: [Color.white.opacity(0.95), Color.white.opacity(0.12)],
+        colors: [
+            Color.dyn(light: UIColor.white.withAlphaComponent(0.95),
+                      dark: UIColor.white.withAlphaComponent(0.34)),
+            Color.dyn(light: UIColor.white.withAlphaComponent(0.12),
+                      dark: UIColor.white.withAlphaComponent(0.03))
+        ],
         startPoint: .top,
         endPoint: .bottom
+    )
+
+    /// 进度条轨道等「凹槽」。
+    static let well = Color.dyn(
+        light: UIColor.black.withAlphaComponent(0.07),
+        dark: UIColor.white.withAlphaComponent(0.08)
     )
 }
 
 // MARK: - 背景
 
-/// 冷白底 + 三团极淡光晕，玻璃层压上去才有折射。
+/// 底色 + 三团低饱和光晕。玻璃层压上去才有折射和厚度。
 struct FlatBackground: View {
+    @Environment(\.colorScheme) private var scheme
+
     var body: some View {
+        let boost = scheme == .dark ? 1.5 : 1.0
         ZStack {
             Flat.background
             Circle()
-                .fill(Flat.accent.opacity(0.20))
+                .fill(Flat.accent.opacity(0.20 * boost))
                 .frame(width: 440, height: 440)
                 .blur(radius: 130)
                 .offset(x: -150, y: -300)
             Circle()
-                .fill(Flat.cyan.opacity(0.18))
+                .fill(Flat.cyan.opacity(0.18 * boost))
                 .frame(width: 380, height: 380)
                 .blur(radius: 140)
                 .offset(x: 170, y: -50)
             Circle()
-                .fill(Flat.purple.opacity(0.14))
+                .fill(Flat.purple.opacity(0.14 * boost))
                 .frame(width: 460, height: 460)
                 .blur(radius: 150)
                 .offset(x: -80, y: 320)
@@ -87,7 +165,7 @@ struct FlatBackground: View {
 
 // MARK: - 玻璃层
 
-/// 一块玻璃：材质模糊 + 白色薄涂 + 顶部镜面高光 + 亮边 + 极淡投影。
+/// 一块玻璃：材质模糊 + 白薄涂 + 对角光泽 + 顶部镜面高光 + 亮边 + 投影。
 struct GlassLayer: ViewModifier {
     var radius: CGFloat
     var tint: Color?
@@ -107,7 +185,7 @@ struct GlassLayer: ViewModifier {
                     }
                     shape.fill(
                         LinearGradient(
-                            colors: [Color.white.opacity(0.55), Color.white.opacity(0.24)],
+                            colors: [Flat.sheenTop, Flat.sheenBottom],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         )
@@ -143,12 +221,12 @@ extension View {
         modifier(FlatCardModifier(radius: radius, fill: fill))
     }
 
-    /// 带色调的玻璃卡（用于状态块：在线绿、异常橙）。
+    /// 带色调的玻璃卡（在线绿、异常橙）。
     func tintedCard(_ tint: Color, radius: CGFloat = Flat.cardRadius) -> some View {
         modifier(FlatCardModifier(radius: radius, fill: Flat.surface, tint: tint))
     }
 
-    /// 内嵌输入框：比卡片更薄、更"凹"，用一层浅色玻璃表达可输入。
+    /// 内嵌输入框：比卡片更薄、更"凹"。
     func flatField(radius: CGFloat = Flat.fieldRadius,
                    fill: Color = Flat.surfaceLow) -> some View {
         modifier(FlatFieldModifier(radius: radius, fill: fill))
@@ -167,12 +245,12 @@ struct FlatFieldModifier: ViewModifier {
                 let shape = RoundedRectangle(cornerRadius: radius, style: .continuous)
                 ZStack {
                     shape.fill(.thinMaterial)
-                    shape.fill(Color.white.opacity(0.30))
+                    shape.fill(fill)
                 }
             }
             .overlay {
                 RoundedRectangle(cornerRadius: radius, style: .continuous)
-                    .strokeBorder(Color.black.opacity(0.05), lineWidth: 1)
+                    .strokeBorder(Flat.hairline, lineWidth: 1)
             }
             .clipShape(RoundedRectangle(cornerRadius: radius, style: .continuous))
     }
@@ -213,7 +291,7 @@ struct FlatButtonStyle: ButtonStyle {
                         )
                     } else {
                         shape.fill(.ultraThinMaterial)
-                        shape.fill(Color.white.opacity(0.55))
+                        shape.fill(Flat.surfaceHigh)
                     }
                 }
             }
@@ -244,15 +322,12 @@ struct FlatPill: ViewModifier {
             .background {
                 ZStack {
                     shape.fill(.ultraThinMaterial)
-                    shape.fill(Color.white.opacity(selected ? 0.30 : 0.50))
-                    if selected {
-                        shape.fill(tint.opacity(0.18))
-                    }
+                    shape.fill(selected ? tint.opacity(0.14) : Flat.surfaceHigh)
                 }
             }
             .overlay {
                 shape.strokeBorder(
-                    selected ? tint.opacity(0.55) : Color.white.opacity(0.85),
+                    selected ? tint.opacity(0.55) : Flat.stroke,
                     lineWidth: 1
                 )
             }
@@ -289,7 +364,7 @@ struct FlatStatusMark: View {
     }
 }
 
-/// 细进度条：浅色轨道 + 渐变填充。
+/// 细进度条：凹槽轨道 + 渐变填充。
 struct FlatProgressBar: View {
     var progress: Double
     var tint: Color
@@ -298,7 +373,7 @@ struct FlatProgressBar: View {
     var body: some View {
         GeometryReader { proxy in
             ZStack(alignment: .leading) {
-                Capsule().fill(Color.black.opacity(0.07))
+                Capsule().fill(Flat.well)
                 Capsule()
                     .fill(
                         LinearGradient(
