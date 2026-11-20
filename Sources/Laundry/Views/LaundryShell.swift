@@ -37,7 +37,7 @@ struct LaundryShell: View {
     @State private var tab: LaundryTab = .laundry
     @Namespace private var segment
 
-    private let barHeight: CGFloat = 40
+    private let barHeight: CGFloat = 34
 
     var body: some View {
         VStack(spacing: 0) {
@@ -82,14 +82,14 @@ struct LaundryShell: View {
                 } label: {
                     VStack(spacing: 1) {
                         Image(systemName: item.symbol)
-                            .font(.system(size: 13, weight: .semibold))
-                            .frame(height: 15)
+                            .font(.system(size: 12, weight: .semibold))
+                            .frame(height: 14)
                         Text(item.title)
-                            .font(.system(size: 9.5, weight: .medium))
+                            .font(.system(size: 9, weight: .medium))
                     }
                     .foregroundStyle(selected ? Flat.accent : Flat.textSecondary)
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 4)
+                    .padding(.vertical, 3)
                     .background {
                         if selected {
                             RoundedRectangle(cornerRadius: 11, style: .continuous)
@@ -103,9 +103,9 @@ struct LaundryShell: View {
             }
         }
         .padding(.horizontal, 4)
-        .frame(height: barHeight - 8)
-        .liquidGlass(radius: (barHeight - 8) / 2, strength: 12, edgeWidth: 11)
-        .padding(.horizontal, 26)
+        .frame(height: barHeight)
+        .liquidGlassSurface(radius: barHeight / 2)
+        .padding(.horizontal, 34)
         .padding(.top, 2)
         .padding(.bottom, 8)
     }
