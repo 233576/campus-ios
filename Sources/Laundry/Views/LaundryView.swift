@@ -46,7 +46,7 @@ struct LaundryView: View {
                     }
                 }
                 .padding(.horizontal, 16)
-                .padding(.bottom, 88)
+                .padding(.bottom, 78)
             }
             .refreshable {
                 await store.refreshAll()
