@@ -10,7 +10,7 @@ struct CampusNetHomeView: View {
 
     @State var showAccounts = false
     @State private var showingProfileEditor = false
-    @State private var showingPortalWeb = false
+    @State var showingPortalWeb = false
     /// 底部认证栏是否可见。点过「立即认证」就先收起来。
     @State private var isActionBarVisible = true
 
@@ -279,10 +279,6 @@ struct CampusNetHomeView: View {
         return GiWifiClient.normalizedPortalURL(raw)
     }
 
-    private func openPortal() {
-        store.clearError()
-        showingPortalWeb = true
-    }
 
     private var buttonTitle: String {
         switch store.state {
@@ -308,5 +304,12 @@ struct CampusNetHomeView: View {
         case .failed: return .appDanger
         case .offline, .idle: return .secondary
         }
+    }
+}
+
+extension CampusNetHomeView {
+    func openPortal() {
+        store.clearError()
+        showingPortalWeb = true
     }
 }

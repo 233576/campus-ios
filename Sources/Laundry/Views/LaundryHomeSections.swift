@@ -186,3 +186,15 @@ extension LaundryView {
         }
     }
 }
+
+extension LaundryView {
+    /// 顶部洗涤进度卡要显示的那一笔订单。
+    var progressOrder: PGOrder? {
+        if let running = store.runningOrder { return running }
+        if let paid = store.latestPaidOrder, let end = paid.endsAt,
+           end.timeIntervalSince(store.now) > -300 {
+            return paid
+        }
+        return nil
+    }
+}

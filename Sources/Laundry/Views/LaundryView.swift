@@ -6,7 +6,7 @@ import UIKit
 /// 结构走 AppList（insetGrouped），不再用「大卡片套小卡片」。
 /// 唯一保留的卡片是顶部洗涤进度 —— 它是全局状态，不属于任何分组。
 struct LaundryView: View {
-    @EnvironmentObject private var store: LaundryStore
+    @EnvironmentObject var store: LaundryStore
 
     @State private var code = ""
     @State private var showingLogin = false
@@ -253,14 +253,6 @@ struct LaundryView: View {
         }
     }
 
-    private var progressOrder: PGOrder? {
-        if let running = store.runningOrder { return running }
-        if let paid = store.latestPaidOrder, let end = paid.endsAt,
-           end.timeIntervalSince(store.now) > -300 {
-            return paid
-        }
-        return nil
-    }
 
 
     // MARK: - 底部遮罩显隐
