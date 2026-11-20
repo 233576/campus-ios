@@ -273,22 +273,6 @@ struct CampusNetHomeView: View {
     // MARK: - 派生
 
 
-    private var buttonTitle: String {
-        switch store.state {
-        case .online: return "重新认证"
-        case .connecting: return "认证中…"
-        default: return "立即认证"
-        }
-    }
-
-    private var stateColor: Color {
-        switch store.state {
-        case .online: return .appBrand
-        case .checking, .connecting: return .appBrand
-        case .failed: return .appDanger
-        case .offline, .idle: return .secondary
-        }
-    }
 }
 
 extension CampusNetHomeView {
@@ -314,6 +298,25 @@ extension CampusNetHomeView {
         case .checking, .connecting: return "arrow.triangle.2.circlepath"
         case .failed: return "exclamationmark"
         case .offline, .idle: return "wifi.slash"
+        }
+    }
+}
+
+extension CampusNetHomeView {
+    var buttonTitle: String {
+        switch store.state {
+        case .online: return "重新认证"
+        case .connecting: return "认证中…"
+        default: return "立即认证"
+        }
+    }
+
+    var stateColor: Color {
+        switch store.state {
+        case .online: return .appBrand
+        case .checking, .connecting: return .appBrand
+        case .failed: return .appDanger
+        case .offline, .idle: return .secondary
         }
     }
 }
