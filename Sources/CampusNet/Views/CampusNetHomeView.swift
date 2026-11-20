@@ -262,7 +262,12 @@ struct CampusNetHomeView: View {
                         .padding(.vertical, 12)
                         .background {
                             RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                .fill(selected ? Flat.accent.opacity(0.12) : Flat.surfaceHigh)
+                                .fill(selected ? Color.blue.opacity(0.15) : Color.clear)
+                        }
+                        .overlay {
+                            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                .stroke(selected ? Color.blue.opacity(0.30) : Color.white.opacity(0.45),
+                                        lineWidth: 1)
                         }
                     }
                     .buttonStyle(.plain)
