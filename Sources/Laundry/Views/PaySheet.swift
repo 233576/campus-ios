@@ -78,7 +78,7 @@ struct PaySheet: View {
                 Text(alertMessage ?? "")
             }
         }
-        .preferredColorScheme(.dark)
+        .preferredColorScheme(.light)
     }
 
     // MARK: - 卡片
