@@ -32,16 +32,17 @@ struct CampusNetLogView: View {
                 GlassContainer(spacing: Spacing.s) {
                     HStack(spacing: Spacing.s) {
                         GlassToolbarButton(symbol: copied ? "checkmark" : "doc.on.doc",
+                                           label: "复制全部日志",
                                            tint: .secondary) {
                             UIPasteboard.general.string = store.logText
                             copied = true
                         }
-                        .accessibilityLabel("复制全部日志")
 
-                        GlassToolbarButton(symbol: "trash", tint: .appDanger) {
+                        GlassToolbarButton(symbol: "trash",
+                                           label: "清空日志",
+                                           tint: .appDanger) {
                             confirmingClear = true
                         }
-                        .accessibilityLabel("清空日志")
                     }
                 }
             }
