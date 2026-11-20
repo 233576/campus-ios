@@ -43,7 +43,6 @@ struct LaundryView: View {
             }
         }
         .appNavigation(title: "胖乖洗衣", subtitle: "洗衣机 · 扫码即用")
-        .toolbarBackground(.automatic, for: .navigationBar)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 GlassToolbarButton(symbol: "arrow.clockwise", label: "刷新") {
@@ -281,24 +280,30 @@ struct LaundryView: View {
     }
 
     private var bottomBar: some View {
-        PrimaryActionBar(
-            title: store.isBusy
-                ? store.busyText
-                : (store.loggedIn ? "查询这台洗衣机" : "登录后查询"),
-            isBusy: store.isBusy,
-            isDisabled: code.trimmingCharacters(in: .whitespaces).isEmpty,
-            hint: code.trimmingCharacters(in: .whitespaces).isEmpty
-                ? "请先扫码或输入机器码"
-                : nil
-        ) {
-            if store.loggedIn {
-                let target = code
-                hideActionBar()
-                Task { _ = await store.resolve(code: target) }
-            } else {
-                hideActionBar()
-                store.needsLogin = true
+        VStack(spacing: 0) {
+            Button {
+                if store.loggedIn {
+                    let target = code
+                    hideActionBar()
+                    Task { _ = await store.resolve(code: target) }
+                } else {
+                    hideActionBar()
+                    store.needsLogin = true
+                }
+            } label: {
+                HStack(spacing: Spacing.s) {
+                    if store.isBusy {
+                        ProgressView().tint(.white)
+                    }
+                    Text(store.isBusy ? store.busyText : (store.loggedIn ? "查询这台洗衣机" : "登录后查询"))
+                }
             }
+            .buttonStyle(GlassButtonStyle(role: .primary))
+            .disabled(store.isBusy || code.trimmingCharacters(in: .whitespaces).isEmpty)
+            .padding(.horizontal, Spacing.page)
+            .padding(.top, Spacing.s)
+            .padding(.bottom, Spacing.s)
         }
+        .background(.bar)
     }
 }

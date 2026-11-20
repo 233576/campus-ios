@@ -25,7 +25,6 @@ struct CampusNetHomeView: View {
             infoSection
         }
         .appNavigation(title: "GiWiFi 助手", subtitle: "校园网 · 一键认证")
-        .toolbarBackground(.automatic, for: .navigationBar)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 GlassToolbarLink(symbol: "gearshape", label: "校园网设置", value: CampusRoute.settings)
@@ -251,15 +250,23 @@ struct CampusNetHomeView: View {
     }
 
     private var bottomBar: some View {
-        PrimaryActionBar(
-            title: buttonTitle,
-            isBusy: store.state == .connecting,
-            isDisabled: store.settings.username.isEmpty,
-            hint: store.settings.username.isEmpty ? "请先添加校园网账号" : nil
-        ) {
+        Button {
             hideActionBar()
             Task { await store.login() }
+        } label: {
+            HStack(spacing: Spacing.s) {
+                if store.state == .connecting {
+                    ProgressView().tint(.white)
+                }
+                Text(buttonTitle)
+            }
         }
+        .buttonStyle(GlassButtonStyle(role: .primary))
+        .disabled(store.state == .connecting || store.settings.username.isEmpty)
+        .opacity(store.state == .connecting || store.settings.username.isEmpty ? 0.5 : 1)
+        .padding(.horizontal, Spacing.page)
+        .padding(.vertical, Spacing.s)
+        .background(.bar)
     }
 
     // MARK: - 派生
