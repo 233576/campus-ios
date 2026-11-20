@@ -62,7 +62,7 @@ struct ProfileEditorView: View {
             }
             .onAppear(perform: fill)
         }
-        .preferredColorScheme(.dark)
+        .preferredColorScheme(.light)
     }
 
     private var canSave: Bool {
@@ -81,7 +81,7 @@ struct ProfileEditorView: View {
                     .foregroundStyle(Flat.textTertiary)
                     .frame(width: 18)
                 TextField("档案名称（例如 我的 iPad）", text: $name)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(Flat.textPrimary)
             }
             .flatField()
 
@@ -152,7 +152,7 @@ struct ProfileEditorView: View {
                 .keyboardType(keyboard)
                 .autocorrectionDisabled()
                 .textInputAutocapitalization(.never)
-                .foregroundStyle(.white)
+                .foregroundStyle(Flat.textPrimary)
         }
         .flatField(radius: 12)
     }
@@ -171,7 +171,7 @@ struct ProfileEditorView: View {
                 TextField("留空则用本机 / 服务端返回的 MAC", text: $macOverride)
                     .autocorrectionDisabled()
                     .textInputAutocapitalization(.characters)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(Flat.textPrimary)
             }
             .flatField()
 
