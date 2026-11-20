@@ -4,7 +4,7 @@ import SwiftUI
 ///
 /// 从 PaySheet 拆出来，主文件只留状态与动作，各卡片单独可读。
 extension PaySheet {
-    private var amountCard: some View {
+    var amountCard: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("待支付")
                 .font(Typography.caption.weight(.medium))
@@ -33,7 +33,7 @@ extension PaySheet {
         .flatCard()
     }
 
-    private var channelPicker: some View {
+    var channelPicker: some View {
         HStack(spacing: 8) {
             chip("微信支付", tint: Flat.green, type: PGProtocol.payTypeWeChat)
             chip("支付宝", tint: Flat.accent, type: PGProtocol.payTypeAlipay)
@@ -70,7 +70,7 @@ extension PaySheet {
     }
 
     @ViewBuilder
-    private var balanceCard: some View {
+    var balanceCard: some View {
         HStack(spacing: 12) {
             ZStack {
                 Circle().fill(Flat.orange.opacity(0.16)).frame(width: 40, height: 40)
@@ -112,7 +112,7 @@ extension PaySheet {
         .flatCard()
     }
 
-    private var infoCard: some View {
+    var infoCard: some View {
         VStack(spacing: 0) {
             infoRow("订单号", current.orderId, mono: true)
             FlatDivider(inset: 14)
@@ -200,7 +200,7 @@ extension PaySheet {
         .padding(.vertical, 11)
     }
 
-    private var actionList: some View {
+    var actionList: some View {
         VStack(spacing: 10) {
             if payType == PGProtocol.payTypeWallet {
                 Button {
