@@ -281,11 +281,11 @@ struct FlatPill: ViewModifier {
 }
 
 extension View {
-    func flatPill(selected: Bool, tint: Color = GlassPalette.accent) -> some View {
+    func flatPill(selected: Bool = false, tint: Color = GlassPalette.accent) -> some View {
         modifier(FlatPill(selected: selected, tint: tint))
     }
 
-    func glassPill(selected: Bool, tint: Color = GlassPalette.accent) -> some View {
+    func glassPill(selected: Bool = false, tint: Color = GlassPalette.accent) -> some View {
         flatPill(selected: selected, tint: tint)
     }
 }
