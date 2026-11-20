@@ -1,188 +1,130 @@
 import SwiftUI
 
+/// 校园网设置：账号、上报设备、Portal、网关名、协议参数、保持在线、自定义机型、关于。
+///
+/// 全部走 AppList Section，一个 Section 一层；不再有「大卡片包小卡片」。
 struct CampusNetSettingsView: View {
     @EnvironmentObject private var store: CampusNetStore
 
-    @State private var portal: String = GiWifiProtocol.defaultPortal
-    @State private var nasName: String = ""
+    @State private var portal = GiWifiProtocol.defaultPortal
+    @State private var nasName = ""
     @State private var editing: TerminalProfile?
     @State private var confirmingReset = false
 
     var body: some View {
-        NavigationStack {
-            ZStack {
-                FlatBackground()
+        AppList {
+            accountsSection
+            deviceSection
+            portalSection
+            nasSection
+            protocolSection
+            keepOnlineSection
+            profileSection
+            aboutSection
+        }
+        .appNavigation(title: "校园网设置")
+        .onAppear {
+            portal = store.settings.portalOverride
+            nasName = store.settings.nasName
+        }
+        .sheet(item: $editing) { profile in
+            ProfileEditorView(profile: profile).environmentObject(store)
+        }
+        .alert("重新生成设备标识？", isPresented: $confirmingReset) {
+            Button("取消", role: .cancel) {}
+            Button("生成", role: .destructive) { store.resetAppUuid() }
+        } message: {
+            Text("下次认证会以新设备身份登录，可能需要重新换绑。")
+        }
+    }
 
-                ScrollView {
-                    VStack(spacing: 14) {
-                        accountsCard
-                        kindCard
-                        portalCard
-                        nasCard
-                        protocolCard
-                        keepOnlineCard
-                        customProfileCard
-                        aboutCard
+    // MARK: - 账号
+
+    private var accountsSection: some View {
+        Section {
+            NavigationLink {
+                AccountsView().environmentObject(store)
+            } label: {
+                HStack(spacing: Spacing.m) {
+                    AppIconCircle(symbol: "person.2.fill", tint: .appBrand)
+                    VStack(alignment: .leading, spacing: Spacing.xxs) {
+                        Text("账号管理").font(Typography.rowTitle)
+                        Text(store.accounts.isEmpty
+                             ? "添加校园网账号，支持多个账号切换登录"
+                             : "\(store.accounts.count) 个账号 · 当前 \(store.currentAccountName)")
+                            .font(Typography.rowSubtitle)
+                            .foregroundStyle(.secondary)
                     }
-                    .padding(.horizontal, 16)
-                    .padding(.top, 6)
-                    .padding(.bottom, 16)
                 }
-                .scrollIndicators(.hidden)
+                .padding(.vertical, Spacing.xxs)
             }
-            .toolbar(.hidden, for: .navigationBar)
-            .onAppear {
-                portal = store.settings.portalOverride
-                nasName = store.settings.nasName
-            }
-            .sheet(item: $editing) { profile in
-                ProfileEditorView(profile: profile).environmentObject(store)
-            }
-            .alert("重新生成设备标识？", isPresented: $confirmingReset) {
-                Button("取消", role: .cancel) {}
-                Button("生成", role: .destructive) { store.resetAppUuid() }
-            } message: {
-                Text("下次认证会以新设备身份登录，可能需要重新换绑。")
-            }
+        } header: {
+            Text("账号")
         }
     }
 
-    // MARK: - 账号管理入口
+    // MARK: - 上报设备
 
-    private var accountsCard: some View {
-        NavigationLink {
-            AccountsView().environmentObject(store)
-        } label: {
-            HStack(spacing: 12) {
-                Image(systemName: "person.2.fill")
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(Flat.accent)
-                    .frame(width: 24)
-
-                VStack(alignment: .leading, spacing: 3) {
-                    Text("账号管理")
-                        .font(.subheadline.weight(.medium))
-                        .foregroundStyle(Flat.textPrimary)
-                    Text(store.accounts.isEmpty
-                         ? "添加校园网账号，支持多个账号切换登录"
-                         : "\(store.accounts.count) 个账号 · 当前 \(store.currentAccountName)")
-                        .font(.caption2)
-                        .foregroundStyle(Flat.textTertiary)
-                }
-
-                Spacer(minLength: 0)
-
-                Image(systemName: "chevron.right")
-                    .font(.caption2)
-                    .foregroundStyle(Flat.textTertiary)
-            }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 13)
-            .flatCard()
-        }
-        .buttonStyle(.plain)
-    }
-
-    // MARK: - 设备类别
-
-    private var kindCard: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            FlatSectionHeader(title: "上报设备")
-
-            HStack(spacing: 8) {
+    private var deviceSection: some View {
+        Section {
+            Picker("上报设备", selection: Binding(
+                get: { store.currentProfile.kind },
+                set: { store.selectKind($0) }
+            )) {
                 ForEach(DeviceKind.allCases) { kind in
-                    let selected = store.currentProfile.kind == kind
-                    Button {
-                        store.selectKind(kind)
-                    } label: {
-                        VStack(spacing: 6) {
-                            Image(systemName: kind.symbol)
-                                .font(.system(size: 17, weight: .medium))
-                            Text(kind.title)
-                                .font(.caption.weight(.medium))
-                        }
-                        .foregroundStyle(selected ? Flat.accent : Flat.textSecondary)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 12)
-                        .flatPill(selected: selected)
-                    }
-                    .buttonStyle(.plain)
+                    Text(kind.title).tag(kind)
                 }
             }
+            .pickerStyle(.segmented)
 
-            VStack(alignment: .leading, spacing: 4) {
-                Text("上报值：\(store.currentProfile.staModel)")
-                    .font(.system(.caption2, design: .monospaced))
-                    .foregroundStyle(Flat.textSecondary)
-                Text("btype=\(store.currentProfile.btype) · staType=\(store.currentProfile.staType)")
-                    .font(.system(.caption2, design: .monospaced))
-                    .foregroundStyle(Flat.textTertiary)
+            LabeledContent("上报值") {
+                Text("\(store.currentProfile.btype) · \(store.currentProfile.staType)")
+                    .font(Typography.mono)
+                    .foregroundStyle(.secondary)
             }
-
+            LabeledContent("机型串") {
+                Text(store.currentProfile.staModel)
+                    .font(Typography.mono)
+                    .foregroundStyle(.secondary)
+            }
+        } header: {
+            Text("上报设备")
+        } footer: {
             Text("只区分手机 / 平板 / 电脑，型号统一用苹果；内置网页登录的 UA 会跟着一起换。")
-                .font(.caption2)
-                .foregroundStyle(Flat.textTertiary)
+                .font(Typography.caption2)
         }
-        .padding(16)
-        .flatCard()
     }
 
     // MARK: - Portal
 
-    private var portalCard: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            FlatSectionHeader(title: "Portal 站点")
-
-            HStack(spacing: 10) {
-                Image(systemName: "globe")
-                    .font(.footnote)
-                    .foregroundStyle(Flat.textTertiary)
-                    .frame(width: 18)
+    private var portalSection: some View {
+        Section {
+            HStack(spacing: Spacing.s) {
                 TextField("http://100.100.9.2/gportal/web/login", text: $portal)
                     .textContentType(.URL)
                     .keyboardType(.URL)
                     .autocorrectionDisabled()
                     .textInputAutocapitalization(.never)
-                    .foregroundStyle(Flat.textPrimary)
+                    .font(Typography.mono)
                     .onSubmit { applyPortal() }
-            }
-            .flatField()
-
-            HStack(spacing: 10) {
-                Button {
-                    portal = GiWifiProtocol.defaultPortal
-                    applyPortal()
-                } label: {
-                    Text("恢复默认站点")
-                        .font(.caption.weight(.medium))
-                        .foregroundStyle(Flat.textSecondary)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 7)
-                        .flatPill()
-                }
-                .buttonStyle(.plain)
-
-                Button {
-                    applyPortal()
-                } label: {
-                    Text("保存")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 7)
-                        .flatPill(selected: true)
-                }
-                .buttonStyle(.plain)
-
-                Spacer()
+                    .submitLabel(.done)
             }
 
+            Button("恢复默认站点") {
+                portal = GiWifiProtocol.defaultPortal
+                applyPortal()
+            }
+            .font(Typography.body)
+
+            Button("保存站点") { applyPortal() }
+                .font(Typography.body)
+                .foregroundStyle(Color.appBrand)
+        } header: {
+            Text("Portal 站点")
+        } footer: {
             Text("留空则走 APK 原始探测（115.159.209.137 → 302 跳转）。填了就直连该站点。")
-                .font(.caption2)
-                .foregroundStyle(Flat.textTertiary)
+                .font(Typography.caption2)
         }
-        .padding(16)
-        .flatCard()
     }
 
     private func applyPortal() {
@@ -193,29 +135,24 @@ struct CampusNetSettingsView: View {
 
     // MARK: - 网关名
 
-    private var nasCard: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            FlatSectionHeader(title: "网关名 nasName")
+    private var nasSection: some View {
+        Section {
+            TextField("留空自动获取（如 GiWiFi_lnsfHG）", text: $nasName)
+                .autocorrectionDisabled()
+                .textInputAutocapitalization(.never)
+                .font(Typography.mono)
+                .onSubmit { applyNasName() }
+                .submitLabel(.done)
 
-            HStack(spacing: 10) {
-                Image(systemName: "antenna.radiowaves.left.and.right")
-                    .font(.footnote)
-                    .foregroundStyle(Flat.textTertiary)
-                    .frame(width: 18)
-                TextField("留空自动获取（如 GiWiFi_lnsfHG）", text: $nasName)
-                    .autocorrectionDisabled()
-                    .textInputAutocapitalization(.never)
-                    .foregroundStyle(Flat.textPrimary)
-                    .onSubmit { applyNasName() }
-            }
-            .flatField()
-
+            Button("保存网关名") { applyNasName() }
+                .font(Typography.body)
+                .foregroundStyle(Color.appBrand)
+        } header: {
+            Text("网关名 nasName")
+        } footer: {
             Text("认证被拒 CHALLENGE_ERR_DENY 基本都是这里对不上。留空时先用 queryAuthState 返回的真实网关名，取不到再抓 Portal 页面。")
-                .font(.caption2)
-                .foregroundStyle(Flat.textTertiary)
+                .font(Typography.caption2)
         }
-        .padding(16)
-        .flatCard()
     }
 
     private func applyNasName() {
@@ -226,184 +163,118 @@ struct CampusNetSettingsView: View {
 
     // MARK: - 协议参数
 
-    private var protocolCard: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            FlatSectionHeader(title: "协议参数")
-
+    private var protocolSection: some View {
+        Section {
             Stepper(value: Binding(
                 get: { store.settings.serviceType },
                 set: { value in store.updateSettings { $0.serviceType = value } }
             ), in: 1...3) {
-                HStack {
-                    Text("service_type")
-                        .font(.subheadline)
-                        .foregroundStyle(Flat.textPrimary)
-                    Spacer()
+                LabeledContent("service_type") {
                     Text("\(store.settings.serviceType)")
-                        .font(.subheadline.monospacedDigit())
-                        .foregroundStyle(Flat.accent)
+                        .font(Typography.monoValue)
+                        .foregroundStyle(.secondary)
                 }
             }
 
-            FlatDivider(inset: 0)
-
-            HStack {
-                VStack(alignment: .leading, spacing: 3) {
-                    Text("设备标识 appUuid")
-                        .font(.subheadline)
-                        .foregroundStyle(Flat.textPrimary)
-                    Text("…\(store.settings.appUuid.suffix(9))")
-                        .font(.system(.caption, design: .monospaced))
-                        .foregroundStyle(Flat.textTertiary)
-                }
-                Spacer()
-                Button {
-                    confirmingReset = true
-                } label: {
-                    Text("重新生成")
-                        .font(.footnote.weight(.medium))
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 7)
-                        .flatPill()
-                }
-                .buttonStyle(.plain)
+            LabeledContent("设备标识 appUuid") {
+                Text("…\(store.settings.appUuid.suffix(9))")
+                    .font(Typography.mono)
+                    .foregroundStyle(.secondary)
             }
 
+            Button("重新生成设备标识") { confirmingReset = true }
+                .font(Typography.body)
+                .foregroundStyle(Color.appBrand)
+        } header: {
+            Text("协议参数")
+        } footer: {
             Text("每个账号有独立的 appUuid，重新生成后需要重新认证一次。")
-                .font(.caption2)
-                .foregroundStyle(Flat.textTertiary)
+                .font(Typography.caption2)
         }
-        .padding(16)
-        .flatCard()
     }
 
     // MARK: - 保持在线
 
-    private var keepOnlineCard: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            FlatSectionHeader(title: "保持在线")
+    private var keepOnlineSection: some View {
+        Section {
+            Toggle("掉线自动重连", isOn: Binding(
+                get: { store.settings.autoReconnect },
+                set: { store.setAutoReconnect($0) }
+            ))
 
-            toggleRow("掉线自动重连",
-                      isOn: Binding(
-                        get: { store.settings.autoReconnect },
-                        set: { store.setAutoReconnect($0) }
-                      ))
-
-            FlatDivider(inset: 0)
-
-            toggleRow("设备冲突时自动换绑",
-                      isOn: Binding(
-                        get: { store.settings.autoRebind },
-                        set: { value in store.updateSettings { $0.autoRebind = value } }
-                      ))
-
-            FlatDivider(inset: 0)
+            Toggle("设备冲突时自动换绑", isOn: Binding(
+                get: { store.settings.autoRebind },
+                set: { value in store.updateSettings { $0.autoRebind = value } }
+            ))
 
             Stepper(value: Binding(
                 get: { Int(store.settings.reconnectInterval) },
                 set: { value in store.updateSettings { $0.reconnectInterval = Double(value) } }
             ), in: 10...300, step: 5) {
-                HStack {
-                    Text("检查间隔")
-                        .font(.subheadline)
-                        .foregroundStyle(Flat.textPrimary)
-                    Spacer()
+                LabeledContent("检查间隔") {
                     Text("\(Int(store.settings.reconnectInterval)) 秒")
-                        .font(.subheadline.monospacedDigit())
-                        .foregroundStyle(Flat.accent)
+                        .font(Typography.monoValue)
+                        .foregroundStyle(.secondary)
                 }
             }
-        }
-        .padding(16)
-        .flatCard()
-    }
-
-    private func toggleRow(_ title: String, isOn: Binding<Bool>) -> some View {
-        HStack {
-            Text(title)
-                .font(.subheadline)
-                .foregroundStyle(Flat.textPrimary)
-            Spacer()
-            Toggle("", isOn: isOn)
-                .labelsHidden()
-                .tint(Flat.green)
+        } header: {
+            Text("保持在线")
         }
     }
 
-    // MARK: - 自定义档案
+    // MARK: - 自定义机型
 
-    private var customProfileCard: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                FlatSectionHeader(title: "自定义机型")
-                Button {
-                    editing = TerminalProfile(name: "", btype: DeviceKind.phone.btype,
-                                              staType: DeviceKind.phone.staType,
-                                              staModel: DeviceKind.phone.defaultModel,
-                                              macOverride: "")
-                } label: {
-                    Label("新建", systemImage: "plus.circle")
-                        .font(.caption.weight(.medium))
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 6)
-                        .flatPill()
-                }
-                .buttonStyle(.plain)
-            }
-
+    private var profileSection: some View {
+        Section {
             if store.customProfiles.isEmpty {
                 Text("没有自定义机型。内置的手机 / 平板 / 电脑已经够用，需要特定型号再来这里加。")
-                    .font(.caption2)
-                    .foregroundStyle(Flat.textTertiary)
+                    .font(Typography.footnote)
+                    .foregroundStyle(.secondary)
             } else {
-                VStack(spacing: 8) {
-                    ForEach(store.customProfiles) { profile in
-                        profileRow(profile)
-                    }
+                ForEach(store.customProfiles) { profile in
+                    profileRow(profile)
                 }
             }
+
+            Button {
+                editing = TerminalProfile(name: "",
+                                          btype: DeviceKind.phone.btype,
+                                          staType: DeviceKind.phone.staType,
+                                          staModel: DeviceKind.phone.defaultModel,
+                                          macOverride: "")
+            } label: {
+                Label("新建自定义机型", systemImage: "plus.circle")
+                    .font(Typography.body)
+            }
+        } header: {
+            Text("自定义机型")
         }
-        .padding(16)
-        .flatCard()
     }
 
     private func profileRow(_ profile: TerminalProfile) -> some View {
-        let selected = profile.id == store.settings.selectedProfileID
-        return Button {
+        Button {
             editing = profile
         } label: {
-            HStack(spacing: 10) {
-                Image(systemName: profile.kind.symbol)
-                    .font(.caption)
-                    .foregroundStyle(Flat.textSecondary)
-                    .frame(width: 18)
-
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(profile.name)
-                        .font(.footnote.weight(.medium))
-                        .foregroundStyle(Flat.textPrimary)
+            HStack(spacing: Spacing.m) {
+                AppIconCircle(symbol: profile.kind.symbol, tint: .appBrand)
+                VStack(alignment: .leading, spacing: Spacing.xxs) {
+                    Text(profile.name.isEmpty ? "未命名" : profile.name)
+                        .font(Typography.rowTitle)
                     Text(profile.subtitle)
-                        .font(.caption2)
-                        .foregroundStyle(Flat.textTertiary)
+                        .font(Typography.rowSubtitle)
+                        .foregroundStyle(.secondary)
                         .lineLimit(1)
                 }
-
-                Spacer()
-
-                if selected {
-                    Image(systemName: "checkmark.circle.fill")
-                        .foregroundStyle(Flat.green)
+                Spacer(minLength: Spacing.s)
+                if profile.id == store.settings.selectedProfileID {
+                    Image(systemName: "checkmark")
+                        .font(Typography.subheadline.weight(.semibold))
+                        .foregroundStyle(Color.appBrand)
                 } else {
-                    Image(systemName: "chevron.right")
-                        .font(.caption2)
-                        .foregroundStyle(Flat.textTertiary)
+                    AppChevron()
                 }
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 10)
-            .flatField(radius: 12)
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .contextMenu {
@@ -422,34 +293,27 @@ struct CampusNetSettingsView: View {
 
     // MARK: - 关于
 
-    private var aboutCard: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            FlatSectionHeader(title: "关于")
-
-            HStack {
-                Text("版本")
-                    .font(.subheadline)
-                    .foregroundStyle(Flat.textPrimary)
-                Spacer()
+    private var aboutSection: some View {
+        Section {
+            LabeledContent("版本") {
                 Text(Self.appVersion)
-                    .font(.subheadline.monospacedDigit())
-                    .foregroundStyle(Flat.textSecondary)
+                    .font(Typography.monoValue)
+                    .foregroundStyle(.secondary)
             }
 
             Link(destination: URL(string: "https://github.com/Mhenwa/xGiWifi")!) {
-                HStack {
+                HStack(spacing: Spacing.m) {
                     Text("参考实现 xGiWifi（Dart/Flutter）")
-                        .font(.footnote)
-                        .foregroundStyle(Flat.accent)
-                    Spacer()
+                        .font(Typography.body)
+                    Spacer(minLength: Spacing.s)
                     Image(systemName: "arrow.up.right")
-                        .font(.caption2)
-                        .foregroundStyle(Flat.accent.opacity(0.7))
+                        .font(Typography.caption)
+                        .foregroundStyle(.secondary)
                 }
             }
+        } header: {
+            Text("关于")
         }
-        .padding(16)
-        .flatCard(fill: Flat.surfaceLow)
     }
 
     static var appVersion: String {
