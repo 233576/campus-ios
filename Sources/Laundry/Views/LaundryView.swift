@@ -14,6 +14,8 @@ struct LaundryView: View {
     @State private var showingPay = false
     @State private var showingRecharge = false
     @State private var confirming: PGSku?
+    /// 底部查询栏是否可见。点过按钮就先收起来，让列表能滚到底。
+    @State private var isActionBarVisible = true
 
     var body: some View {
         VStack(spacing: 0) {
@@ -49,7 +51,19 @@ struct LaundryView: View {
                 .disabled(store.isBusy)
             }
         }
-        .safeAreaInset(edge: .bottom, spacing: 0) { bottomBar }
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            if isActionBarVisible {
+                bottomBar
+                    .transition(.asymmetric(
+                        insertion: .opacity.combined(with: .offset(y: 26)),
+                        removal: .opacity.combined(with: .offset(y: 26))
+                    ))
+            }
+        }
+        .onAppear { showActionBar() }
+        .onChange(of: store.isBusy) { busy in
+            if !busy { showActionBar() }
+        }
         .sheet(isPresented: $showingLogin) {
             LoginSheet {
                 let target = code.trimmingCharacters(in: .whitespaces)
@@ -259,13 +273,33 @@ struct LaundryView: View {
         return nil
     }
 
+
+    // MARK: - 底部遮罩显隐
+
+    /// 隐藏底部操作栏：向下淡出 26pt，接近临界阻尼，顺滑到位不弹跳。
+    private func hideActionBar() {
+        withAnimation(.spring(response: 0.5, dampingFraction: 0.86, blendDuration: 0.3)) {
+            isActionBarVisible = false
+        }
+    }
+
+    /// 恢复底部操作栏，动画与隐藏保持对称。
+    private func showActionBar() {
+        guard !isActionBarVisible else { return }
+        withAnimation(.spring(response: 0.5, dampingFraction: 0.86, blendDuration: 0.3)) {
+            isActionBarVisible = true
+        }
+    }
+
     private var bottomBar: some View {
         VStack(spacing: 0) {
             Button {
                 if store.loggedIn {
                     let target = code
+                    hideActionBar()
                     Task { _ = await store.resolve(code: target) }
                 } else {
+                    hideActionBar()
                     store.needsLogin = true
                 }
             } label: {

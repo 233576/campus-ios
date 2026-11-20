@@ -11,6 +11,8 @@ struct CampusNetHomeView: View {
     @State var showAccounts = false
     @State private var showingProfileEditor = false
     @State private var showingPortalWeb = false
+    /// 底部认证栏是否可见。点过「立即认证」就先收起来。
+    @State private var isActionBarVisible = true
 
     var body: some View {
         AppList {
@@ -29,7 +31,19 @@ struct CampusNetHomeView: View {
             }
         }
         .refreshable { await store.refreshState() }
-        .safeAreaInset(edge: .bottom, spacing: 0) { bottomBar }
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            if isActionBarVisible {
+                bottomBar
+                    .transition(.asymmetric(
+                        insertion: .opacity.combined(with: .offset(y: 26)),
+                        removal: .opacity.combined(with: .offset(y: 26))
+                    ))
+            }
+        }
+        .onAppear { showActionBar() }
+        .onChange(of: store.state) { state in
+            if state != .connecting { showActionBar() }
+        }
         .sheet(isPresented: $showAccounts) {
             AccountsView(isPicker: true).environmentObject(store)
         }
@@ -217,8 +231,27 @@ struct CampusNetHomeView: View {
 
     // MARK: - 底部主按钮
 
+
+    // MARK: - 底部遮罩显隐
+
+    /// 隐藏底部操作栏：向下淡出 26pt，接近临界阻尼，顺滑到位不弹跳。
+    private func hideActionBar() {
+        withAnimation(.spring(response: 0.5, dampingFraction: 0.86, blendDuration: 0.3)) {
+            isActionBarVisible = false
+        }
+    }
+
+    /// 恢复底部操作栏，动画与隐藏保持对称。
+    private func showActionBar() {
+        guard !isActionBarVisible else { return }
+        withAnimation(.spring(response: 0.5, dampingFraction: 0.86, blendDuration: 0.3)) {
+            isActionBarVisible = true
+        }
+    }
+
     private var bottomBar: some View {
         Button {
+            hideActionBar()
             Task { await store.login() }
         } label: {
             HStack(spacing: Spacing.s) {
