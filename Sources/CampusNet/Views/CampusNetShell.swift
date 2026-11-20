@@ -31,7 +31,7 @@ struct CampusNetShell: View {
     @State private var tab: CampusNetTab = .home
     @Namespace private var segment
 
-    private let barHeight: CGFloat = 34
+    private let barHeight: CGFloat = 40
 
     var body: some View {
         VStack(spacing: 0) {
@@ -67,10 +67,10 @@ struct CampusNetShell: View {
                 } label: {
                     VStack(spacing: 1) {
                         Image(systemName: item.symbol)
-                            .font(.system(size: 12, weight: .semibold))
-                            .frame(height: 14)
+                            .font(.system(size: 14, weight: .semibold))
+                            .frame(height: 16)
                         Text(item.title)
-                            .font(.system(size: 9, weight: .medium))
+                            .font(.system(size: 9.5, weight: .medium))
                     }
                     .foregroundStyle(selected ? Flat.accent : Flat.textSecondary)
                     .frame(maxWidth: .infinity)
@@ -90,7 +90,7 @@ struct CampusNetShell: View {
         .padding(.horizontal, 4)
         .frame(height: barHeight)
         .liquidGlassSurface(radius: barHeight / 2)
-        .padding(.horizontal, 34)
+        .padding(.horizontal, 18)
         .padding(.top, 2)
         .padding(.bottom, 8)
     }
