@@ -2,9 +2,9 @@ name: iOS Build
 
 on:
   push:
-    branches: [main, feat/liquid-glass-redesign]
+    branches: [main, 'feat/**']
   pull_request:
-    branches: [main]
+    branches: [main, 'feat/**']
   workflow_dispatch:
 
 concurrency:
