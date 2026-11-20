@@ -27,14 +27,7 @@ struct CampusNetHomeView: View {
         }
         .appNavigation(title: "GiWiFi 助手", subtitle: "校园网 · 一键认证")
         .toolbarBackground(.automatic, for: .navigationBar)
-        .toolbar {
-            ToolbarItemGroup(placement: .topBarTrailing) {
-                plainToolbarItem(authenticateButton)
-                plainToolbarItem(GlassToolbarLink(symbol: "gearshape",
-                                                  label: "校园网设置",
-                                                  value: CampusRoute.settings))
-            }
-        }
+        .toolbar { trailingToolbar }
         .refreshable { await store.refreshState() }
         .appToast($toast)
         .sheet(isPresented: $showAccounts) {
@@ -72,22 +65,38 @@ struct CampusNetHomeView: View {
         }
     }
 
-    // MARK: - 导航栏认证按钮
+    // MARK: - 导航栏按钮
 
-    /// iOS 26 会给同一个 ToolbarItemGroup 的按钮合并共享玻璃背景。
-    /// 那样两个图标会被裹进一个胶囊、左侧留出大片空白，所以这里逐个关掉共享背景，
-    /// 让它们各自独立渲染。低版本没有这个 API，原样返回。
-    @ViewBuilder
-    private func plainToolbarItem<V: View>(_ content: V) -> some View {
+    /// 两个按钮各自独立声明，不让 iOS 26 把它们合并成一条共享玻璃背景。
+    ///
+    /// `sharedBackgroundVisibility` 是 ToolbarContent 上的修饰符（不是 View 上的），
+    /// 所以这里必须用 `ToolbarItem` 逐项声明，不能塞进 `ToolbarItemGroup`。
+    @ToolbarContentBuilder
+    private var trailingToolbar: some ToolbarContent {
         #if compiler(>=6.2)
         if #available(iOS 26.0, *) {
-            content.sharedBackgroundVisibility(.hidden)
+            ToolbarItem(placement: .topBarTrailing) { authenticateButton }
+                .sharedBackgroundVisibility(.hidden)
+            ToolbarItem(placement: .topBarTrailing) { settingsLink }
+                .sharedBackgroundVisibility(.hidden)
         } else {
-            content
+            plainTrailingToolbar
         }
         #else
-        content
+        plainTrailingToolbar
         #endif
+    }
+
+    @ToolbarContentBuilder
+    private var plainTrailingToolbar: some ToolbarContent {
+        ToolbarItem(placement: .topBarTrailing) { authenticateButton }
+        ToolbarItem(placement: .topBarTrailing) { settingsLink }
+    }
+
+    private var settingsLink: some View {
+        GlassToolbarLink(symbol: "gearshape",
+                         label: "校园网设置",
+                         value: CampusRoute.settings)
     }
 
     private var canAuthenticate: Bool {
