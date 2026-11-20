@@ -53,6 +53,7 @@ struct FlatBackground: View {
 struct FlatCardModifier: ViewModifier {
     var radius: CGFloat = Radius.card
     var fill: Color = Color.appSecondaryBackground
+    /// 保留参数以兼容旧调用；投影已去掉（滚动时触发离屏渲染）。
     var elevated: Bool = true
 
     func body(content: Content) -> some View {
@@ -62,8 +63,6 @@ struct FlatCardModifier: ViewModifier {
                 RoundedRectangle(cornerRadius: radius, style: .continuous)
                     .strokeBorder(Color.appSeparator, lineWidth: 0.5)
             }
-            .shadow(color: elevated ? Color.black.opacity(0.04) : .clear,
-                    radius: 10, x: 0, y: 4)
     }
 }
 
