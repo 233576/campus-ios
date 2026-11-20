@@ -1,8 +1,9 @@
 import SwiftUI
 
-/// 统一导航标题：大标题 + 副标题 + 滚动折叠。
+/// 统一导航标题：大标题 + 副标题。
 ///
-/// 用它代替各页面手写的 navigationTitle，保证 7 个 Tab 看起来是一套东西。
+/// 副标题走 iOS 26 的 `navigationSubtitle`；低版本自动省略，
+/// 不自己画一层 overlay —— 那会跟大标题折叠打架。
 struct AppNavigation: ViewModifier {
     var title: String
     var subtitle: String?
@@ -11,24 +12,23 @@ struct AppNavigation: ViewModifier {
         content
             .navigationTitle(title)
             .navigationBarTitleDisplayMode(.large)
-            .toolbar {
-                if let subtitle {
-                    ToolbarItem(placement: .principal) {
-                        EmptyView()
-                    }
-                    .hidden()
-                }
-            }
-            .overlay(alignment: .topLeading) {
-                if let subtitle {
-                    Text(subtitle)
-                        .font(Typography.footnote)
-                        .foregroundStyle(.secondary)
-                        .padding(.horizontal, Spacing.page)
-                        .padding(.top, Spacing.xxl)
-                        .allowsHitTesting(false)
-                }
-            }
+            .modifier(SubtitleIfAvailable(subtitle: subtitle))
+    }
+}
+
+private struct SubtitleIfAvailable: ViewModifier {
+    var subtitle: String?
+
+    func body(content: Content) -> some View {
+        #if compiler(>=6.2)
+        if #available(iOS 26.0, *), let subtitle {
+            content.navigationSubtitle(subtitle)
+        } else {
+            content
+        }
+        #else
+        content
+        #endif
     }
 }
 
