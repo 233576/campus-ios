@@ -25,6 +25,7 @@ struct CampusNetHomeView: View {
             infoSection
         }
         .appNavigation(title: "GiWiFi 助手", subtitle: "校园网 · 一键认证")
+        .toolbarBackground(.automatic, for: .navigationBar)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 GlassToolbarLink(symbol: "gearshape", label: "校园网设置", value: CampusRoute.settings)
@@ -250,38 +251,23 @@ struct CampusNetHomeView: View {
     }
 
     private var bottomBar: some View {
-        VStack(spacing: Spacing.xs) {
-            Button {
-                hideActionBar()
-                Task { await store.login() }
-            } label: {
-                HStack(spacing: Spacing.s) {
-                    if store.state == .connecting {
-                        ProgressView().tint(.white)
-                    }
-                    Text(buttonTitle)
+        Button {
+            hideActionBar()
+            Task { await store.login() }
+        } label: {
+            HStack(spacing: Spacing.s) {
+                if store.state == .connecting {
+                    ProgressView().tint(.white)
                 }
+                Text(buttonTitle)
             }
-            .buttonStyle(GlassButtonStyle(role: .primary))
-            .disabled(isAuthBlocked)
-
-            // 固定高度，只切透明度，出现/消失都不改 frame。
-            Text("请先添加校园网账号")
-                .font(Typography.caption2)
-                .foregroundStyle(Color(uiColor: .tertiaryLabel))
-                .frame(height: 14)
-                .opacity(store.settings.username.isEmpty ? 1 : 0)
-                .accessibilityHidden(!store.settings.username.isEmpty)
         }
+        .buttonStyle(GlassButtonStyle(role: .primary))
+        .disabled(store.state == .connecting || store.settings.username.isEmpty)
+        .opacity(store.state == .connecting || store.settings.username.isEmpty ? 0.5 : 1)
         .padding(.horizontal, Spacing.page)
-        .padding(.top, Spacing.s)
-        .padding(.bottom, Spacing.s + 10)
+        .padding(.vertical, Spacing.s)
         .background(.bar)
-    }
-
-    /// 没账号或正在认证，按钮就不可点。
-    private var isAuthBlocked: Bool {
-        store.state == .connecting || store.settings.username.isEmpty
     }
 
     // MARK: - 派生
