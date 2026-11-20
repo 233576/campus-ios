@@ -26,7 +26,7 @@ struct CampusNetLogView: View {
             }
         }
         .appNavigation(title: "校园网日志")
-        .toolbar(.hidden, for: .tabBar)
+        .toolbarBackground(.automatic, for: .navigationBar)
         .searchable(text: $query, prompt: "搜索日志")
         .toolbar {
             ToolbarItemGroup(placement: .topBarTrailing) {

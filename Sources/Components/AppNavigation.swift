@@ -23,21 +23,12 @@ struct AppNavigation: ViewModifier {
         #endif
     }
 
-    @ViewBuilder
+    /// iOS 18 没有 `.navigationSubtitle`。这里只渲染标题 —— 不再用 overlay 在
+    /// 导航栏区域手工摆一行字，那会和折叠中的大标题、右上角按钮互相穿插。
     private func legacy(_ content: Content) -> some View {
         content
             .navigationTitle(title)
             .navigationBarTitleDisplayMode(.large)
-            .overlay(alignment: .topLeading) {
-                if let subtitle {
-                    Text(subtitle)
-                        .font(Typography.footnote)
-                        .foregroundStyle(.secondary)
-                        .padding(.horizontal, Spacing.page)
-                        .padding(.top, Spacing.xxl)
-                        .allowsHitTesting(false)
-                }
-            }
     }
 }
 

@@ -23,7 +23,7 @@ struct CampusNetSettingsView: View {
             aboutSection
         }
         .appNavigation(title: "校园网设置")
-        .toolbar(.hidden, for: .tabBar)
+        .toolbarBackground(.automatic, for: .navigationBar)
         .sheet(isPresented: $showingAccounts) {
             AccountsView().environmentObject(store)
         }

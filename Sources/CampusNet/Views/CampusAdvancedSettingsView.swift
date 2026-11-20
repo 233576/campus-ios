@@ -24,7 +24,7 @@ struct CampusAdvancedSettingsView: View {
             keepOnlineSection
         }
         .appNavigation(title: "高级设置")
-        .toolbar(.hidden, for: .tabBar)
+        .toolbarBackground(.automatic, for: .navigationBar)
         .onAppear {
             portal = store.settings.portalOverride
             nasName = store.settings.nasName

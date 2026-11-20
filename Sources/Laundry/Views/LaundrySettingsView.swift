@@ -25,7 +25,7 @@ struct LaundrySettingsView: View {
             aboutSection
         }
         .appNavigation(title: "洗衣设置")
-        .toolbar(.hidden, for: .tabBar)
+        .toolbarBackground(.automatic, for: .navigationBar)
         .sheet(isPresented: $showingLogin) {
             LoginSheet().environmentObject(store)
         }
