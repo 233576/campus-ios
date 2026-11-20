@@ -1,0 +1,278 @@
+name: iOS Build
+
+on:
+  push:
+    branches: [main, feat/liquid-glass-redesign]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ios-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  SCHEME: Campus
+  PROJECT: Campus.xcodeproj
+
+jobs:
+  # ------------------------------------------------------------------
+  # 编译验证 + 未签名包。日常 push 只跑这个，省 macOS 额度。
+  # ------------------------------------------------------------------
+  build-unsigned:
+    name: build-unsigned
+    runs-on: macos-15
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select Xcode 26
+        run: |
+          set -euo pipefail
+          echo "--- installed ---"
+          ls -d /Applications/Xcode*.app 2>/dev/null || true
+          BEST=""
+          BEST_VER=0
+          for APP in /Applications/Xcode*.app; do
+            [ -d "$APP" ] || continue
+            VER=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$APP/Contents/Info.plist" 2>/dev/null | cut -d. -f1)
+            case "$VER" in ''|*[!0-9]*) continue ;; esac
+            echo "$APP -> major $VER"
+            if [ "$VER" -gt "$BEST_VER" ]; then BEST_VER=$VER; BEST="$APP"; fi
+          done
+          if [ -n "$BEST" ]; then
+            echo "==> selecting $BEST (major $BEST_VER)"
+            sudo xcode-select -s "$BEST/Contents/Developer"
+          fi
+          xcodebuild -version
+          xcrun --sdk iphoneos --show-sdk-version
+          if [ "$BEST_VER" -lt 26 ]; then
+            echo "::warning::No Xcode 26 on this image (best=$BEST_VER); Liquid Glass APIs will fall back."
+          fi
+
+      - name: Install XcodeGen
+        run: |
+          if ! command -v xcodegen >/dev/null; then
+            brew install xcodegen
+          fi
+          xcodegen --version
+
+      - name: Fetch WeChat OpenSDK
+        run: |
+          curl -sSL -o /tmp/wxopen.zip https://dldir1.qq.com/WechatWebDev/opensdk/XCFramework/OpenSDK2.0.9.zip
+          mkdir -p sdk
+          unzip -q /tmp/wxopen.zip -d sdk
+
+      - name: Generate project
+        run: xcodegen generate --spec project.yml
+
+      - name: Build (unsigned)
+        run: |
+          set -o pipefail
+          mkdir -p build
+          xcodebuild \
+            -project "$PROJECT" \
+            -scheme "$SCHEME" \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            DEVELOPMENT_TEAM="" \
+            build 2>&1 | tee build/xcodebuild.log
+
+      - name: Archive (unsigned)
+        run: |
+          set -o pipefail
+          xcodebuild \
+            -project "$PROJECT" \
+            -scheme "$SCHEME" \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -archivePath build/Campus.xcarchive \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            archive 2>&1 | tee -a build/xcodebuild.log || true
+
+      - name: Package IPA
+        run: bash scripts/package-ipa.sh
+
+      - name: Inspect product
+        run: |
+          APP="build/Build/Products/Release-iphoneos/Campus.app"
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP/Info.plist"
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$APP/Info.plist"
+          /usr/libexec/PlistBuddy -c 'Print :MinimumOSVersion' "$APP/Info.plist"
+          lipo -info "$APP/Campus" || file "$APP/Campus"
+
+      - name: Upload IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: Campus-unsigned-${{ github.sha }}-${{ github.run_number }}
+          path: |
+            dist/Campus-unsigned.ipa
+            dist/Campus-unsigned-app.zip
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload xcarchive
+        uses: actions/upload-artifact@v4
+        with:
+          name: Campus-xcarchive-${{ github.sha }}-${{ github.run_number }}
+          path: build/Campus.xcarchive
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Upload build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: xcodebuild-log-${{ github.sha }}-${{ github.run_number }}
+          path: build/xcodebuild.log
+          if-no-files-found: warn
+          retention-days: 14
+
+  # ------------------------------------------------------------------
+  # 签名 + TestFlight。只在打 tag 或手动触发时跑；缺 Secrets 时整段跳过。
+  # ------------------------------------------------------------------
+  build-signed:
+    name: build-signed
+    if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v')
+    runs-on: macos-15
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check signing secrets
+        id: secrets
+        env:
+          CERT: ${{ secrets.BUILD_CERTIFICATE_BASE64 }}
+          PROFILE: ${{ secrets.BUILD_PROVISION_PROFILE_BASE64 }}
+          ASC_KEY: ${{ secrets.APP_STORE_CONNECT_P8 }}
+        run: |
+          OK=true
+          [ -z "$CERT" ] && { echo "::warning::BUILD_CERTIFICATE_BASE64 未配置"; OK=false; }
+          [ -z "$PROFILE" ] && { echo "::warning::BUILD_PROVISION_PROFILE_BASE64 未配置"; OK=false; }
+          [ -z "$ASC_KEY" ] && { echo "::warning::APP_STORE_CONNECT_P8 未配置"; OK=false; }
+          echo "ok=$OK" >> "$GITHUB_OUTPUT"
+
+      - name: Skip notice
+        if: steps.secrets.outputs.ok != 'true'
+        run: |
+          echo "签名凭据不全，跳过签名与 TestFlight。请配置这些 Secrets："
+          echo "  BUILD_CERTIFICATE_BASE64 / P12_PASSWORD / BUILD_PROVISION_PROFILE_BASE64"
+          echo "  KEYCHAIN_PASSWORD / APPLE_TEAM_ID"
+          echo "  APP_STORE_CONNECT_KEY_ID / APP_STORE_CONNECT_ISSUER_ID / APP_STORE_CONNECT_P8"
+
+      - name: Select Xcode 26
+        if: steps.secrets.outputs.ok == 'true'
+        run: |
+          set -euo pipefail
+          BEST=""; BEST_VER=0
+          for APP in /Applications/Xcode*.app; do
+            [ -d "$APP" ] || continue
+            VER=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$APP/Contents/Info.plist" 2>/dev/null | cut -d. -f1)
+            case "$VER" in ''|*[!0-9]*) continue ;; esac
+            if [ "$VER" -gt "$BEST_VER" ]; then BEST_VER=$VER; BEST="$APP"; fi
+          done
+          [ -n "$BEST" ] && sudo xcode-select -s "$BEST/Contents/Developer"
+          xcodebuild -version
+
+      - name: Install XcodeGen
+        if: steps.secrets.outputs.ok == 'true'
+        run: |
+          command -v xcodegen >/dev/null || brew install xcodegen
+          xcodegen --version
+
+      - name: Fetch WeChat OpenSDK
+        if: steps.secrets.outputs.ok == 'true'
+        run: |
+          curl -sSL -o /tmp/wxopen.zip https://dldir1.qq.com/WechatWebDev/opensdk/XCFramework/OpenSDK2.0.9.zip
+          mkdir -p sdk
+          unzip -q /tmp/wxopen.zip -d sdk
+
+      - name: Import certificate and profile
+        if: steps.secrets.outputs.ok == 'true'
+        env:
+          CERT: ${{ secrets.BUILD_CERTIFICATE_BASE64 }}
+          P12_PASSWORD: ${{ secrets.P12_PASSWORD }}
+          PROFILE: ${{ secrets.BUILD_PROVISION_PROFILE_BASE64 }}
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+        run: |
+          set -euo pipefail
+          CERT_PATH=$RUNNER_TEMP/cert.p12
+          PROFILE_PATH=$RUNNER_TEMP/profile.mobileprovision
+          KEYCHAIN=$RUNNER_TEMP/build.keychain-db
+          echo -n "$CERT" | base64 --decode -o "$CERT_PATH"
+          echo -n "$PROFILE" | base64 --decode -o "$PROFILE_PATH"
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          security import "$CERT_PATH" -P "$P12_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN"
+          security set-key-partition-list -S apple-tool:,apple: -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          cp "$PROFILE_PATH" ~/Library/MobileDevice/Provisioning\ Profiles/
+
+      - name: Build and export IPA
+        if: steps.secrets.outputs.ok == 'true'
+        env:
+          TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          set -o pipefail
+          xcodegen generate --spec project.yml
+          mkdir -p build dist
+          xcodebuild \
+            -project "$PROJECT" \
+            -scheme "$SCHEME" \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -archivePath build/Campus.xcarchive \
+            -allowProvisioningUpdates \
+            DEVELOPMENT_TEAM="$TEAM_ID" \
+            archive 2>&1 | tee build/archive.log
+          cat > build/ExportOptions.plist <<'PLIST'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key><string>app-store-connect</string>
+            <key>signingStyle</key><string>manual</string>
+            <key>stripSwiftSymbols</key><true/>
+            <key>compileBitcode</key><false/>
+          </dict>
+          </plist>
+          PLIST
+          xcodebuild -exportArchive \
+            -archivePath build/Campus.xcarchive \
+            -exportOptionsPlist build/ExportOptions.plist \
+            -exportPath dist \
+            -allowProvisioningUpdates 2>&1 | tee build/export.log
+
+      - name: Upload signed IPA
+        if: steps.secrets.outputs.ok == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: Campus-signed-${{ github.ref_name }}-${{ github.run_number }}
+          path: dist/*.ipa
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Upload to TestFlight
+        if: steps.secrets.outputs.ok == 'true' && startsWith(github.ref, 'refs/tags/v')
+        env:
+          ASC_KEY: ${{ secrets.APP_STORE_CONNECT_P8 }}
+          ASC_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.appstoreconnect/private_keys
+          echo -n "$ASC_KEY" | base64 --decode -o ~/.appstoreconnect/private_keys/AuthKey_"$ASC_KEY_ID".p8
+          IPA=$(ls dist/*.ipa | head -1)
+          echo "uploading $IPA"
+          xcrun altool --upload-app --type ios --file "$IPA" \
+            --apiKey "$ASC_KEY_ID" --apiIssuer "$ASC_ISSUER_ID" --verbose || \
+          echo "::warning::altool 上传失败，请检查 App Store Connect 凭据与 App 记录"
