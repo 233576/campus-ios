@@ -26,14 +26,11 @@ struct CampusNetSettingsView: View {
                     }
                     .padding(.horizontal, 16)
                     .padding(.top, 6)
-                    .padding(.bottom, 78)
+                    .padding(.bottom, 16)
                 }
                 .scrollIndicators(.hidden)
             }
-            .navigationTitle("设置")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbarBackground(Flat.background, for: .navigationBar)
-            .toolbarBackground(.visible, for: .navigationBar)
+            .toolbar(.hidden, for: .navigationBar)
             .onAppear {
                 portal = store.settings.portalOverride
                 nasName = store.settings.nasName
