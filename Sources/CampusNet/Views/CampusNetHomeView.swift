@@ -250,23 +250,38 @@ struct CampusNetHomeView: View {
     }
 
     private var bottomBar: some View {
-        Button {
-            hideActionBar()
-            Task { await store.login() }
-        } label: {
-            HStack(spacing: Spacing.s) {
-                if store.state == .connecting {
-                    ProgressView().tint(.white)
+        VStack(spacing: Spacing.xs) {
+            Button {
+                hideActionBar()
+                Task { await store.login() }
+            } label: {
+                HStack(spacing: Spacing.s) {
+                    if store.state == .connecting {
+                        ProgressView().tint(.white)
+                    }
+                    Text(buttonTitle)
                 }
-                Text(buttonTitle)
             }
+            .buttonStyle(GlassButtonStyle(role: .primary))
+            .disabled(isAuthBlocked)
+
+            // 固定高度，只切透明度，出现/消失都不改 frame。
+            Text("请先添加校园网账号")
+                .font(Typography.caption2)
+                .foregroundStyle(Color(uiColor: .tertiaryLabel))
+                .frame(height: 14)
+                .opacity(store.settings.username.isEmpty ? 1 : 0)
+                .accessibilityHidden(!store.settings.username.isEmpty)
         }
-        .buttonStyle(GlassButtonStyle(role: .primary))
-        .disabled(store.state == .connecting || store.settings.username.isEmpty)
-        .opacity(store.state == .connecting || store.settings.username.isEmpty ? 0.5 : 1)
         .padding(.horizontal, Spacing.page)
-        .padding(.vertical, Spacing.s)
+        .padding(.top, Spacing.s)
+        .padding(.bottom, Spacing.s + 10)
         .background(.bar)
+    }
+
+    /// 没账号或正在认证，按钮就不可点。
+    private var isAuthBlocked: Bool {
+        store.state == .connecting || store.settings.username.isEmpty
     }
 
     // MARK: - 派生

@@ -280,7 +280,7 @@ struct LaundryView: View {
     }
 
     private var bottomBar: some View {
-        VStack(spacing: 0) {
+        VStack(spacing: Spacing.xs) {
             Button {
                 if store.loggedIn {
                     let target = code
@@ -299,11 +299,24 @@ struct LaundryView: View {
                 }
             }
             .buttonStyle(GlassButtonStyle(role: .primary))
-            .disabled(store.isBusy || code.trimmingCharacters(in: .whitespaces).isEmpty)
-            .padding(.horizontal, Spacing.page)
-            .padding(.top, Spacing.s)
-            .padding(.bottom, Spacing.s)
+            .disabled(isQueryBlocked)
+
+            // 固定高度，只切透明度，出现/消失都不改 frame。
+            Text("请先扫码或输入机器码")
+                .font(Typography.caption2)
+                .foregroundStyle(Color(uiColor: .tertiaryLabel))
+                .frame(height: 14)
+                .opacity(code.trimmingCharacters(in: .whitespaces).isEmpty ? 1 : 0)
+                .accessibilityHidden(!code.trimmingCharacters(in: .whitespaces).isEmpty)
         }
+        .padding(.horizontal, Spacing.page)
+        .padding(.top, Spacing.s)
+        .padding(.bottom, Spacing.s + 10)
         .background(.bar)
+    }
+
+    /// 机器码为空或正在查，按钮就不可点。
+    private var isQueryBlocked: Bool {
+        store.isBusy || code.trimmingCharacters(in: .whitespaces).isEmpty
     }
 }
