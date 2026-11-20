@@ -51,7 +51,7 @@ struct CampusShell: View {
         TabView(selection: $tab) {
             NavigationStack {
                 LaundryView()
-                    .task(perform: autoDetectOnce)
+                    .task { await autoDetectOnce() }
             }
             .tag(AppTab.laundry)
             .tabItem { Label(AppTab.laundry.title, systemImage: AppTab.laundry.symbol) }
