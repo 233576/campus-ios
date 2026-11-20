@@ -310,6 +310,17 @@ struct FlatButtonStyle: ButtonStyle {
     }
 }
 
+/// 通用的「按下就缩」：反馈在按下瞬间给，不等点击完成。
+struct PressScaleStyle: ButtonStyle {
+    var scale: CGFloat = 0.96
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? scale : 1)
+            .animation(.spring(response: 0.22, dampingFraction: 0.9), value: configuration.isPressed)
+    }
+}
+
 // MARK: - 胶囊 chip
 
 struct FlatPill: ViewModifier {
