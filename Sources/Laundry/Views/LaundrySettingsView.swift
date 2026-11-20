@@ -23,7 +23,7 @@ struct LaundrySettingsView: View {
                     aboutCard
                 }
                 .padding(.horizontal, 16)
-                .padding(.bottom, 78)
+                .padding(.bottom, 16)
             }
         }
         .sheet(isPresented: $showingLogin) {
