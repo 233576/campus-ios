@@ -68,58 +68,49 @@ struct CampusShell: View {
         }
     }
 
+    /// iOS 26 那种悬浮胶囊：一条细长的玻璃，选中项是一小块浅色底，图标在上文字在下。
     private var tabBar: some View {
-        HStack(spacing: 4) {
+        HStack(spacing: 2) {
             ForEach(CampusSection.allCases) { item in
                 let selected = section == item
                 Button {
                     select(item)
                 } label: {
-                    VStack(spacing: 4) {
+                    VStack(spacing: 3) {
                         Image(systemName: item.symbol)
-                            .font(.system(size: 16, weight: .semibold))
-                            .frame(height: 18)
+                            .font(.system(size: 19, weight: .semibold))
+                            .frame(height: 21)
                         Text(item.title)
-                            .font(.system(size: 11, weight: .semibold))
+                            .font(.system(size: 10, weight: .medium))
                     }
-                    .foregroundStyle(selected ? Flat.accent : Flat.textTertiary)
+                    .foregroundStyle(selected ? Flat.accent : Flat.textSecondary)
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 7)
+                    .padding(.vertical, 5)
                     .background {
                         if selected {
-                            RoundedRectangle(cornerRadius: 15, style: .continuous)
-                                .fill(Flat.accent.opacity(0.15))
-                                .overlay {
-                                    RoundedRectangle(cornerRadius: 15, style: .continuous)
-                                        .strokeBorder(Flat.accent.opacity(0.45), lineWidth: 1)
-                                }
+                            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                .fill(Flat.accent.opacity(0.12))
                                 .matchedGeometryEffect(id: "sectionIndicator", in: indicator)
                         }
                     }
-                    .contentShape(RoundedRectangle(cornerRadius: 15, style: .continuous))
+                    .contentShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                 }
                 .buttonStyle(CampusTabButtonStyle())
             }
         }
-        .padding(5)
+        .padding(.horizontal, 6)
+        .padding(.vertical, 5)
         .background {
-            // 玻璃是「模糊 + 极薄的一层白 + 顶部镜面高光」，白薄涂必须跟随外观，
-            // 否则暗色模式下就是一整块白板。
-            ZStack {
-                RoundedRectangle(cornerRadius: 24, style: .continuous)
-                    .fill(.ultraThinMaterial)
-                RoundedRectangle(cornerRadius: 24, style: .continuous)
-                    .fill(Flat.surfaceHigh)
-            }
+            GlassCapsuleBacking()
         }
         .overlay {
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .strokeBorder(Flat.specular, lineWidth: 1)
+            Capsule(style: .continuous)
+                .strokeBorder(Flat.glassEdge, lineWidth: 0.8)
         }
-        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
-        .shadow(color: Flat.glassShadow, radius: 20, x: 0, y: 10)
-        .padding(.horizontal, 58)
-        .padding(.bottom, 8)
+        .clipShape(Capsule(style: .continuous))
+        .shadow(color: Flat.glassShadow, radius: 18, x: 0, y: 8)
+        .padding(.horizontal, 40)
+        .padding(.bottom, 6)
     }
 }
 
@@ -127,7 +118,30 @@ struct CampusShell: View {
 private struct CampusTabButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .scaleEffect(configuration.isPressed ? 0.96 : 1)
+            .scaleEffect(configuration.isPressed ? 0.94 : 1)
             .animation(.spring(response: 0.22, dampingFraction: 0.9), value: configuration.isPressed)
+    }
+}
+
+/// 悬浮胶囊的玻璃背板：材质模糊 + 极薄底 + 顶部光泽。
+///
+/// 顺序很关键 —— 先材质（折射背后的内容），再压一层几乎透明的底色（把模糊压成磨砂），
+/// 最后一道自上而下的白，做出玻璃的厚度。三层都是动态色，暗色下自动减薄。
+struct GlassCapsuleBacking: View {
+    var body: some View {
+        ZStack {
+            Capsule(style: .continuous)
+                .fill(.ultraThinMaterial)
+            Capsule(style: .continuous)
+                .fill(Flat.surface.opacity(0.72))
+            Capsule(style: .continuous)
+                .fill(
+                    LinearGradient(
+                        colors: [Flat.sheenTop.opacity(0.9), Color.clear],
+                        startPoint: .top,
+                        endPoint: .center
+                    )
+                )
+        }
     }
 }
