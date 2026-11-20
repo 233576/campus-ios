@@ -43,6 +43,13 @@ struct PrimaryActionBar: View {
             }
             .buttonStyle(.plain)
             .disabled(blocked)
+
+            if let hint {
+                Text(hint)
+                    .font(Typography.caption2)
+                    .foregroundStyle(Color(uiColor: .tertiaryLabel))
+                    .transition(.opacity)
+            }
         }
         .padding(.horizontal, Spacing.l)
         .padding(.vertical, Spacing.s)

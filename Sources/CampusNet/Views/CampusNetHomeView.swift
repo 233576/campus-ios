@@ -254,6 +254,7 @@ struct CampusNetHomeView: View {
             title: buttonTitle,
             isBusy: store.state == .connecting,
             isDisabled: store.settings.username.isEmpty,
+            hint: store.settings.username.isEmpty ? "请先添加校园网账号" : nil
         ) {
             hideActionBar()
             Task { await store.login() }

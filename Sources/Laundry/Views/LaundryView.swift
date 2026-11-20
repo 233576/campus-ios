@@ -286,6 +286,9 @@ struct LaundryView: View {
                 : (store.loggedIn ? "查询这台洗衣机" : "登录后查询"),
             isBusy: store.isBusy,
             isDisabled: code.trimmingCharacters(in: .whitespaces).isEmpty,
+            hint: code.trimmingCharacters(in: .whitespaces).isEmpty
+                ? "请先扫码或输入机器码"
+                : nil
         ) {
             if store.loggedIn {
                 let target = code
