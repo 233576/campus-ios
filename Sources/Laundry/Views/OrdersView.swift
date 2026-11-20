@@ -1,40 +1,85 @@
 import SwiftUI
 
 /// 订单页：查历史、查支付状态、撤销未启动的订单。
+///
+/// 用 AppList + 月份分组；筛选条走 Picker(.segmented) 放在 .toolbar(.principal)，
+/// 不再自绘顶部标题栏。
 struct OrdersView: View {
     @EnvironmentObject private var store: LaundryStore
 
     @State private var cancelling: PGOrder?
+    @State private var query = ""
+    @State private var filter: OrderFilter = .all
+
+    enum OrderFilter: String, CaseIterable, Identifiable {
+        case all, unpaid, running, finished
+
+        var id: String { rawValue }
+
+        var title: String {
+            switch self {
+            case .all: return "全部"
+            case .unpaid: return "待付"
+            case .running: return "洗涤中"
+            case .finished: return "已完成"
+            }
+        }
+
+        func match(_ order: PGOrder) -> Bool {
+            switch self {
+            case .all: return true
+            case .unpaid: return order.isUnpaid
+            case .running: return order.status == 2
+            case .finished: return order.status == 3
+            }
+        }
+    }
 
     var body: some View {
-        ZStack {
-            FlatBackground()
-
-            ScrollView {
-                VStack(spacing: 14) {
-                    header
-
-                    if let pending = store.pending {
-                        pendingCard(pending)
-                    }
-
-                    if store.orders.isEmpty {
-                        emptyCard
-                    } else {
-                        VStack(spacing: 10) {
-                            ForEach(store.orders) { order in
-                                orderCard(order)
-                            }
+        AppList {
+            if let pending = store.pending {
+                pendingSection(pending)
+            }
+            if filtered.isEmpty {
+                Section {
+                    AppEmptyState(
+                        title: store.loggedIn ? "还没有订单记录" : "登录后才能看订单",
+                        message: "在洗衣页扫码下单后，这里会出现记录。",
+                        symbol: "list.bullet.rectangle"
+                    )
+                    .listRowInsets(EdgeInsets())
+                    .listRowBackground(Color.clear)
+                }
+            } else {
+                ForEach(months, id: \.self) { month in
+                    Section(month) {
+                        ForEach(orders(in: month)) { order in
+                            orderRow(order)
                         }
                     }
                 }
-                .padding(.horizontal, 16)
-                .padding(.bottom, 16)
-            }
-            .refreshable {
-                await store.refreshOrders()
             }
         }
+        .appNavigation(title: "订单", subtitle: store.loggedIn ? "共 \(store.orders.count) 条" : "登录后可查看")
+        .searchable(text: $query, placement: .navigationBarDrawer(displayMode: .automatic), prompt: "搜索订单号或洗衣机")
+        .toolbar {
+            ToolbarItem(placement: .principal) {
+                Picker("筛选", selection: $filter) {
+                    ForEach(OrderFilter.allCases) { item in
+                        Text(item.title).tag(item)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .frame(maxWidth: 320)
+            }
+            ToolbarItem(placement: .topBarTrailing) {
+                GlassToolbarButton(symbol: "arrow.clockwise", label: "刷新") {
+                    Task { await store.refreshOrders() }
+                }
+                .disabled(store.isBusy)
+            }
+        }
+        .refreshable { await store.refreshOrders() }
         .confirmationDialog(
             cancelling.map { "撤销订单 \($0.orderNo.isEmpty ? $0.id : $0.orderNo)？" } ?? "",
             isPresented: Binding(get: { cancelling != nil }, set: { if !$0 { cancelling = nil } }),
@@ -42,9 +87,8 @@ struct OrdersView: View {
         ) {
             if let order = cancelling {
                 Button("撤销这笔订单", role: .destructive) {
-                    let target = order
                     cancelling = nil
-                    Task { await store.cancel(order: target) }
+                    Task { await store.cancel(order: order) }
                 }
                 Button("算了", role: .cancel) { cancelling = nil }
             }
@@ -53,163 +97,94 @@ struct OrdersView: View {
         }
     }
 
-    private var header: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 3) {
-                Text("订单")
-                    .font(.system(size: 26, weight: .bold))
-                    .foregroundStyle(Flat.textPrimary)
-                Text(store.loggedIn ? "共 \(store.orders.count) 条" : "登录后可查看")
-                    .font(.system(size: 12))
-                    .foregroundStyle(Flat.textTertiary)
-            }
-            Spacer()
-            Button {
-                Task { await store.refreshOrders() }
-            } label: {
-                Image(systemName: "arrow.clockwise")
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(Flat.accent)
-                    .frame(width: 38, height: 38)
-                    .background(
-                        RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .fill(Flat.surfaceHigh)
-                    )
-            }
-            .buttonStyle(.plain)
-            .disabled(store.isBusy)
-        }
-        .padding(.top, 12)
-    }
+    // MARK: - 行
 
-    private func pendingCard(_ pending: PendingPayment) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 8) {
-                Image(systemName: "exclamationmark.triangle.fill")
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(Flat.orange)
-                Text("待支付")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(Flat.textPrimary)
-                Spacer()
-                Text(pending.price.isEmpty ? "—" : "¥\(pending.price)")
-                    .font(.system(size: 15, weight: .bold, design: .rounded))
-                    .foregroundStyle(Flat.orange)
-            }
-            Text(pending.machineName.isEmpty ? pending.orderId : pending.machineName)
-                .font(.system(size: 12))
-                .foregroundStyle(Flat.textTertiary)
-            HStack(spacing: 10) {
-                Button {
-                    Task { await store.checkPendingPayment() }
-                } label: {
-                    Text("我付好了")
-                        .font(.system(size: 14, weight: .semibold))
-                        .frame(maxWidth: .infinity)
+    private func pendingSection(_ pending: PendingPayment) -> some View {
+        Section {
+            VStack(alignment: .leading, spacing: Spacing.s) {
+                HStack(spacing: Spacing.s) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .foregroundStyle(Color.appWarning)
+                    Text("待支付").font(Typography.rowTitle)
+                    Spacer()
+                    Text(pending.price.isEmpty ? "—" : "¥\(pending.price)")
+                        .font(Typography.monoValue.weight(.semibold))
+                        .foregroundStyle(Color.appWarning)
                 }
-                .buttonStyle(FlatButtonStyle(tint: Flat.orange, filled: true, height: 44))
+                Text(pending.machineName.isEmpty ? pending.orderId : pending.machineName)
+                    .font(Typography.rowSubtitle)
+                    .foregroundStyle(.secondary)
+                HStack(spacing: Spacing.s) {
+                    Button("我付好了") {
+                        Task { await store.checkPendingPayment() }
+                    }
+                    .buttonStyle(GlassButtonStyle(role: .primary))
 
-                Button {
-                    Task { await store.cancelPending() }
-                } label: {
-                    Text("撤销")
-                        .font(.system(size: 14, weight: .semibold))
-                        .frame(maxWidth: .infinity)
+                    Button("撤销") {
+                        Task { await store.cancelPending() }
+                    }
+                    .buttonStyle(GlassButtonStyle(role: .secondary))
                 }
-                .buttonStyle(FlatButtonStyle(tint: Flat.red, filled: false, height: 44))
+                .frame(height: 36)
             }
+            .padding(.vertical, Spacing.xs)
         }
-        .padding(16)
-        .flatCard(fill: Flat.orange.opacity(0.08))
     }
 
-    private var emptyCard: some View {
-        VStack(spacing: 8) {
-            Image(systemName: "list.bullet.rectangle")
-                .font(.system(size: 26, weight: .semibold))
-                .foregroundStyle(Flat.textTertiary)
-            Text(store.loggedIn ? "还没有订单记录" : "登录后才能看订单")
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundStyle(Flat.textSecondary)
-            Text("在洗衣页扫码下单后，这里会出现记录。")
-                .font(.system(size: 12))
-                .foregroundStyle(Flat.textTertiary)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 36)
-        .flatCard(fill: Flat.surfaceLow)
-    }
-
-    private func orderCard(_ order: PGOrder) -> some View {
-        VStack(alignment: .leading, spacing: 9) {
-            HStack(alignment: .top, spacing: 8) {
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(order.title)
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundStyle(Flat.textPrimary)
+    private func orderRow(_ order: PGOrder) -> some View {
+        VStack(alignment: .leading, spacing: Spacing.s) {
+            HStack(alignment: .top, spacing: Spacing.s) {
+                VStack(alignment: .leading, spacing: Spacing.xxs) {
+                    Text(order.title).font(Typography.rowTitle)
                     Text(subtitle(order))
-                        .font(.system(size: 11))
-                        .foregroundStyle(Flat.textTertiary)
+                        .font(Typography.rowSubtitle)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
                 }
-                Spacer()
-                Text(order.displayStatusText)
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(statusColor(order.status))
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 5)
-                    .flatPill(selected: true, tint: statusColor(order.status))
+                Spacer(minLength: Spacing.xs)
+                StatusBadge(order.displayStatusText, kind: badgeKind(order.status))
             }
 
             if order.isRunning(now: store.now) {
-                VStack(alignment: .leading, spacing: 6) {
-                    HStack(spacing: 6) {
+                VStack(alignment: .leading, spacing: Spacing.xs) {
+                    HStack(spacing: Spacing.xs) {
                         Text(order.remainingText(now: store.now))
-                            .font(.system(size: 26, weight: .semibold, design: .rounded))
-                            .monospacedDigit()
-                            .foregroundStyle(Flat.accent)
-                        Text("后洗好")
-                            .font(.system(size: 12))
-                            .foregroundStyle(Flat.textSecondary)
+                            .font(Typography.monoValue.weight(.semibold))
+                            .foregroundStyle(Color.appBrand)
+                        Text("后洗好").font(Typography.footnote).foregroundStyle(.secondary)
                         Spacer(minLength: 0)
                         Text(order.finishText(now: store.now))
-                            .font(.system(size: 11))
-                            .foregroundStyle(Flat.textTertiary)
+                            .font(Typography.caption2)
+                            .foregroundStyle(.tertiary)
                     }
-                    FlatProgressBar(progress: order.progress(now: store.now),
-                                    tint: Flat.accent,
-                                    height: 6)
+                    ProgressView(value: order.progress(now: store.now))
+                        .tint(Color.appBrand)
                 }
             }
 
-            HStack(spacing: 10) {
+            HStack(spacing: Spacing.s) {
                 Text(order.amountText)
-                    .font(.system(size: 17, weight: .bold, design: .rounded))
-                    .foregroundStyle(Flat.textPrimary)
+                    .font(Typography.monoValue.weight(.semibold))
                 if !order.shopName.isEmpty {
                     Text(order.shopName)
-                        .font(.system(size: 11))
-                        .foregroundStyle(Flat.textTertiary)
+                        .font(Typography.caption2)
+                        .foregroundStyle(.secondary)
                         .lineLimit(1)
                 }
-                Spacer()
-            }
-
-            if order.isUnpaid {
-                Button {
-                    cancelling = order
-                } label: {
-                    Text("撤销订单")
-                        .font(.system(size: 13, weight: .semibold))
-                        .frame(maxWidth: .infinity)
+                Spacer(minLength: 0)
+                if order.isUnpaid {
+                    Button("撤销订单") { cancelling = order }
+                        .font(Typography.caption.weight(.semibold))
+                        .foregroundStyle(Color.appDanger)
+                        .buttonStyle(.plain)
+                } else {
+                    AppChevron()
                 }
-                .buttonStyle(FlatButtonStyle(tint: Flat.red, filled: false, height: 40))
             }
         }
-        .padding(14)
-        .flatCard()
+        .padding(.vertical, Spacing.xxs)
     }
 
-    /// 时间 + 订单号 + 原始状态码，方便对着服务端核状态。
     private func subtitle(_ order: PGOrder) -> String {
         var parts: [String] = []
         if !order.createTime.isEmpty { parts.append(order.createTime) }
@@ -218,15 +193,45 @@ struct OrdersView: View {
         return parts.joined(separator: " · ")
     }
 
-    private func statusColor(_ status: Int) -> Color {
+    private func badgeKind(_ status: Int) -> StatusBadgeKind {
         switch status {
-        case 0: return Flat.orange
-        case 1: return Flat.textTertiary
-        case 2: return Flat.accent
-        case 3: return Flat.green
-        case 4: return Flat.textTertiary
-        case 5, 6: return Flat.purple
-        default: return Flat.textSecondary
+        case 0: return .warning
+        case 1: return .neutral
+        case 2: return .brand
+        case 3: return .success
+        case 5, 6: return .brand
+        default: return .neutral
+        }
+    }
+
+    // MARK: - 过滤与分组
+
+    private var filtered: [PGOrder] {
+        let keyword = query.trimmingCharacters(in: .whitespaces)
+        return store.orders.filter { order in
+            guard filter.match(order) else { return false }
+            guard !keyword.isEmpty else { return true }
+            return order.orderNo.localizedCaseInsensitiveContains(keyword)
+                || order.machineName.localizedCaseInsensitiveContains(keyword)
+                || order.shopName.localizedCaseInsensitiveContains(keyword)
+        }
+    }
+
+    private var months: [String] {
+        var seen: [String] = []
+        for order in filtered {
+            let month = String(order.createTime.prefix(7))
+            let key = month.isEmpty ? "更早" : month
+            if !seen.contains(key) { seen.append(key) }
+        }
+        return seen
+    }
+
+    private func orders(in month: String) -> [PGOrder] {
+        filtered.filter { order in
+            let prefix = String(order.createTime.prefix(7))
+            let key = prefix.isEmpty ? "更早" : prefix
+            return key == month
         }
     }
 }
