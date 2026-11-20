@@ -41,6 +41,7 @@ struct LaundryView: View {
             }
         }
         .appNavigation(title: "胖乖洗衣", subtitle: "洗衣机 · 扫码即用")
+        .toolbarBackground(.automatic, for: .navigationBar)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 GlassToolbarButton(symbol: "arrow.clockwise", label: "刷新") {
@@ -165,32 +166,18 @@ struct LaundryView: View {
     /// 模块内的二级页面入口。以前这三项占了 TabBar，现在只是栈里的一层。
     private var navigationSection: some View {
         Section {
-            NavigationLink(value: LaundryRoute.orders) {
-                entryRow("我的订单", symbol: "list.bullet.rectangle.portrait",
-                         detail: store.loggedIn ? "\(store.orders.count) 条" : nil)
-            }
-            NavigationLink(value: LaundryRoute.logs) {
-                entryRow("请求日志", symbol: "text.alignleft", detail: "\(store.logs.count) 行")
-            }
-            NavigationLink(value: LaundryRoute.settings) {
-                entryRow("洗衣设置", symbol: "gearshape", detail: nil)
-            }
+            NavigationRow(symbol: "list.bullet.rectangle.portrait",
+                          title: "我的订单",
+                          badge: store.loggedIn ? "\(store.orders.count) 条" : nil,
+                          value: LaundryRoute.orders)
+            NavigationRow(symbol: "text.alignleft",
+                          title: "请求日志",
+                          badge: "\(store.logs.count) 行",
+                          value: LaundryRoute.logs)
+            NavigationRow(symbol: "gearshape",
+                          title: "洗衣设置",
+                          value: LaundryRoute.settings)
         }
-    }
-
-    private func entryRow(_ title: String, symbol: String, detail: String?) -> some View {
-        HStack(spacing: Spacing.m) {
-            AppIconCircle(symbol: symbol, tint: .appBrand)
-            Text(title).font(Typography.rowTitle)
-            Spacer(minLength: Spacing.s)
-            if let detail {
-                Text(detail)
-                    .font(Typography.caption2)
-                    .foregroundStyle(.secondary)
-            }
-        }
-        .padding(.vertical, Spacing.xxs)
-        .contentShape(Rectangle())
     }
 
     private var accountSubtitle: String {
@@ -260,7 +247,7 @@ struct LaundryView: View {
     }
 
     private var bottomBar: some View {
-        VStack(spacing: 0) {
+        GlassBottomBar {
             Button {
                 if store.loggedIn {
                     let target = code
@@ -278,10 +265,6 @@ struct LaundryView: View {
             }
             .buttonStyle(GlassButtonStyle(role: .primary))
             .disabled(store.isBusy || code.trimmingCharacters(in: .whitespaces).isEmpty)
-            .padding(.horizontal, Spacing.page)
-            .padding(.top, Spacing.s)
-            .padding(.bottom, Spacing.s)
         }
-        .background(.bar)
     }
 }

@@ -42,6 +42,7 @@ struct LaundryLogView: View {
             }
         }
         .appNavigation(title: "日志", subtitle: "\(store.logs.count) 行")
+        .toolbar(.hidden, for: .tabBar)
         .searchable(text: $query, prompt: "搜索日志")
         .toolbar {
             ToolbarItemGroup(placement: .topBarTrailing) {

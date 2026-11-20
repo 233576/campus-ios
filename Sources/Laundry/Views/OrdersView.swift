@@ -61,6 +61,7 @@ struct OrdersView: View {
             }
         }
         .appNavigation(title: "订单", subtitle: store.loggedIn ? "共 \(store.orders.count) 条" : "登录后可查看")
+        .toolbar(.hidden, for: .tabBar)
         .searchable(text: $query, placement: .navigationBarDrawer(displayMode: .automatic), prompt: "搜索订单号或洗衣机")
         .toolbar {
             ToolbarItem(placement: .principal) {
@@ -177,8 +178,6 @@ struct OrdersView: View {
                         .font(Typography.caption.weight(.semibold))
                         .foregroundStyle(Color.appDanger)
                         .buttonStyle(.plain)
-                } else {
-                    AppChevron()
                 }
             }
         }

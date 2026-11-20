@@ -18,6 +18,9 @@ struct AppList<Content: View>: View {
         .scrollContentBackground(.hidden)
         .background(Color.appGroupedBackground)
         .scrollIndicators(.hidden)
+        // 底部固定条会由 safeAreaInset 自动避让，这里再补一点内边距，
+        // 保证滚到底时最后一行完整露出、不贴边。
+        .contentMargins(.bottom, Spacing.s, for: .scrollContent)
     }
 }
 
