@@ -21,8 +21,7 @@ struct CampusNetHomeView: View {
     var body: some View {
         AppList {
             accountSection
-            statusSection
-            actionPairSection
+            connectionSection
             methodSection
             logsEntrySection
         }
@@ -30,8 +29,10 @@ struct CampusNetHomeView: View {
         .toolbarBackground(.automatic, for: .navigationBar)
         .toolbar {
             ToolbarItemGroup(placement: .topBarTrailing) {
-                authenticateButton
-                GlassToolbarLink(symbol: "gearshape", label: "校园网设置", value: CampusRoute.settings)
+                plainToolbarItem(authenticateButton)
+                plainToolbarItem(GlassToolbarLink(symbol: "gearshape",
+                                                  label: "校园网设置",
+                                                  value: CampusRoute.settings))
             }
         }
         .refreshable { await store.refreshState() }
@@ -73,6 +74,22 @@ struct CampusNetHomeView: View {
 
     // MARK: - 导航栏认证按钮
 
+    /// iOS 26 会给同一个 ToolbarItemGroup 的按钮合并共享玻璃背景。
+    /// 那样两个图标会被裹进一个胶囊、左侧留出大片空白，所以这里逐个关掉共享背景，
+    /// 让它们各自独立渲染。低版本没有这个 API，原样返回。
+    @ViewBuilder
+    private func plainToolbarItem<V: View>(_ content: V) -> some View {
+        #if compiler(>=6.2)
+        if #available(iOS 26.0, *) {
+            content.sharedBackgroundVisibility(.hidden)
+        } else {
+            content
+        }
+        #else
+        content
+        #endif
+    }
+
     private var canAuthenticate: Bool {
         !store.settings.username.isEmpty && store.state != .connecting
     }
@@ -85,7 +102,7 @@ struct CampusNetHomeView: View {
                 if store.state == .connecting {
                     ProgressView().controlSize(.small)
                 } else {
-                    Image(systemName: "bolt.horizontal.fill")
+                    Image(systemName: "checkmark.seal.fill")
                         .font(Typography.body)
                         .foregroundStyle(Color.appBrand)
                 }
@@ -97,55 +114,62 @@ struct CampusNetHomeView: View {
         .opacity(canAuthenticate ? 1 : 0.4)
     }
 
-    // MARK: - 并排动作（原地执行）
+    // MARK: - 状态 + 并排动作（原地执行）
 
-    private var actionPairSection: some View {
+    /// 状态卡 → 按钮组 24pt，按钮组 → 说明 8pt。整块是一行，行本身透明，
+    /// 间距全部由 VStack 精确控制，不受 List 默认行距影响。
+    private var connectionSection: some View {
         Section {
-            HStack(spacing: Spacing.m) {
-                Button {
-                    Task { await check() }
-                } label: {
-                    HStack(spacing: Spacing.xs) {
-                        if isCheckingNow {
-                            ProgressView().controlSize(.small)
-                        } else {
-                            Image(systemName: "arrow.clockwise")
-                        }
-                        Text("检测状态")
-                    }
-                }
-                .buttonStyle(GlassButtonStyle(role: .secondary))
-                .disabled(isCheckingNow || store.settings.username.isEmpty)
+            VStack(spacing: 0) {
+                statusCard
 
-                Button {
-                    Task { await rebind() }
-                } label: {
-                    HStack(spacing: Spacing.xs) {
-                        if store.rebinding {
-                            ProgressView().controlSize(.small)
-                        } else {
-                            Image(systemName: "arrow.triangle.2.circlepath")
+                HStack(spacing: Spacing.m) {
+                    Button {
+                        Task { await check() }
+                    } label: {
+                        HStack(spacing: Spacing.xs) {
+                            if isCheckingNow {
+                                ProgressView().controlSize(.small)
+                            } else {
+                                Image(systemName: "arrow.clockwise")
+                            }
+                            Text("检测状态")
                         }
-                        Text("换绑到本机")
                     }
+                    .buttonStyle(GlassButtonStyle(role: .secondary))
+                    .disabled(isCheckingNow || store.settings.username.isEmpty)
+
+                    Button {
+                        Task { await rebind() }
+                    } label: {
+                        HStack(spacing: Spacing.xs) {
+                            if store.rebinding {
+                                ProgressView().controlSize(.small)
+                            } else {
+                                Image(systemName: "arrow.triangle.2.circlepath")
+                            }
+                            Text("换绑到本机")
+                        }
+                    }
+                    .buttonStyle(GlassButtonStyle(role: .secondary))
+                    .disabled(store.rebinding || store.settings.username.isEmpty)
                 }
-                .buttonStyle(GlassButtonStyle(role: .secondary))
-                .disabled(store.rebinding || store.settings.username.isEmpty)
+                .padding(.top, Spacing.l)
+
+                if store.settings.username.isEmpty {
+                    Text("先在「账号管理」里添加账号，这两个按钮才会有反应。")
+                        .font(Typography.caption2)
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.top, Spacing.s)
+                }
             }
-            .listRowInsets(EdgeInsets(top: Spacing.s, leading: Spacing.page,
-                                      bottom: Spacing.s, trailing: Spacing.page))
+            .listRowInsets(EdgeInsets())
             .listRowBackground(Color.clear)
             .listRowSeparator(.hidden)
-        } footer: {
-            if store.settings.username.isEmpty {
-                Text("先在「账号管理」里添加账号，这两个按钮才会有反应。")
-                    .font(Typography.caption2)
-            }
+            .padding(.horizontal, Spacing.page)
         }
-    }
-
-    var isCheckingNow: Bool {
-        store.state == .checking || store.state == .connecting
+        .listSectionSpacing(Spacing.l)
     }
 
     // MARK: - 连接日志
