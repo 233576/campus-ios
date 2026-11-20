@@ -171,39 +171,14 @@ struct FlatBackground: View {
 
 // MARK: - 玻璃层
 
-/// 一块玻璃：材质模糊 + 白薄涂 + 对角光泽 + 顶部镜面高光 + 亮边 + 投影。
+/// 一块玻璃：iOS 26 交给系统 `.glassEffect`，老系统退回材质 + 薄白 + 细边。
 struct GlassLayer: ViewModifier {
     var radius: CGFloat
     var tint: Color?
     var base: Color?
 
     func body(content: Content) -> some View {
-        let shape = RoundedRectangle(cornerRadius: radius, style: .continuous)
-        content
-            .background {
-                ZStack {
-                    shape.fill(.ultraThinMaterial)
-                    if let base {
-                        shape.fill(base)
-                    }
-                    if let tint {
-                        shape.fill(tint.opacity(0.16))
-                    }
-                    shape.fill(
-                        LinearGradient(
-                            colors: [Flat.sheenTop, Flat.sheenBottom],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                }
-            }
-            .overlay {
-                // 顶部亮、底部收 —— 这一层就是"玻璃边"的来源
-                shape.strokeBorder(Flat.specular, lineWidth: 1)
-            }
-            .clipShape(shape)
-            .shadow(color: Flat.glassShadow, radius: 18, x: 0, y: 10)
+        content.liquidGlassSurface(radius: radius, tint: tint)
     }
 }
 
