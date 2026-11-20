@@ -131,6 +131,12 @@ enum Flat {
         light: UIColor.black.withAlphaComponent(0.07),
         dark: UIColor.white.withAlphaComponent(0.08)
     )
+
+    /// 玻璃胶囊的细边（iOS 26 那种几乎看不见的一圈）。
+    static let glassEdge = Color.dyn(
+        light: UIColor.white.withAlphaComponent(0.85),
+        dark: UIColor.white.withAlphaComponent(0.18)
+    )
 }
 
 // MARK: - 背景
