@@ -79,7 +79,6 @@ struct RechargeView: View {
                 }
             }
         }
-        .preferredColorScheme(.light)
         .onAppear {
             if shopIdDraft.isEmpty { shopIdDraft = store.device?.shopId ?? "" }
             Task { await store.refreshBalances() }
