@@ -143,14 +143,14 @@ struct CampusNetHomeView: View {
 
                 Text(store.state == .online ? "在线" : "离线")
                     .font(.caption2.weight(.semibold))
-                    .foregroundStyle(store.state == .online ? Flat.green : Flat.textTertiary)
+                    .foregroundStyle(store.state == .online ? Flat.green : Flat.textSecondary)
                     .padding(.horizontal, 9)
                     .padding(.vertical, 4)
-                    .flatPill(selected: store.state == .online,
-                              tint: Flat.green)
+                    .background {
+                        RoundedRectangle(cornerRadius: 6, style: .continuous)
+                            .fill(store.state == .online ? Flat.green.opacity(0.12) : Flat.surfaceHigh)
+                    }
             }
-
-            FlatProgressBar(progress: progress, tint: stateColor)
         }
         .padding(16)
         .flatCard()
@@ -176,57 +176,51 @@ struct CampusNetHomeView: View {
             .buttonStyle(FlatButtonStyle(tint: Flat.accent, filled: true, height: 50))
             .disabled(store.state == .connecting)
 
-            HStack(spacing: 10) {
-                Button {
+            VStack(spacing: 0) {
+                actionItem(symbol: "arrow.clockwise", title: "检测状态") {
                     Task { await store.refreshState() }
-                } label: {
-                    Label("检测状态", systemImage: "arrow.clockwise")
-                        .font(.footnote.weight(.medium))
-                        .frame(maxWidth: .infinity)
                 }
-                .buttonStyle(FlatButtonStyle(tint: Flat.accent, filled: false, height: 42))
-
-                Button {
+                FlatDivider(inset: 52)
+                actionItem(symbol: "safari", title: "内置网页") {
                     openPortal()
-                } label: {
-                    Label("内置网页", systemImage: "safari")
-                        .font(.footnote.weight(.medium))
-                        .frame(maxWidth: .infinity)
                 }
-                .buttonStyle(FlatButtonStyle(tint: Flat.accent, filled: false, height: 42))
-            }
-
-            // 网页表单登录：页内自签，绕开 API 通路的 CHALLENGE_ERR_DENY
-            Button {
-                Task { await store.webLoginNow() }
-            } label: {
-                Label("网页表单登录", systemImage: "text.insert")
-                    .font(.footnote.weight(.medium))
-                    .frame(maxWidth: .infinity)
-            }
-            .buttonStyle(FlatButtonStyle(tint: Flat.accent, filled: false, height: 42))
-            .disabled(store.state == .connecting)
-
-            // 常驻入口：账号绑在别的设备上（43/203）时点这里换绑到本机
-            Button {
-                Task { await store.rebindDevice() }
-            } label: {
-                HStack(spacing: 8) {
-                    if store.state == .connecting && store.rebinding {
-                        ProgressView()
-                            .progressViewStyle(.circular)
-                            .tint(Flat.accent)
-                    } else {
-                        Image(systemName: "iphone.and.arrow.forward")
-                    }
-                    Text(store.needsRebind ? "换绑到本机（需要确认）" : "换绑到本机")
-                        .font(.footnote.weight(.medium))
+                FlatDivider(inset: 52)
+                actionItem(symbol: "text.insert", title: "网页表单登录") {
+                    Task { await store.webLoginNow() }
                 }
-                .frame(maxWidth: .infinity)
+                FlatDivider(inset: 52)
+                actionItem(symbol: "iphone.and.arrow.forward",
+                           title: store.needsRebind ? "换绑到本机（需要确认）" : "换绑到本机") {
+                    Task { await store.rebindDevice() }
+                }
             }
-            .buttonStyle(FlatButtonStyle(tint: Flat.accent, filled: store.needsRebind, height: 42))
+            .flatCard()
             .disabled(store.state == .connecting)
         }
+    }
+
+    private func actionItem(symbol: String,
+                            title: String,
+                            action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(spacing: 12) {
+                Image(systemName: symbol)
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundStyle(Flat.accent)
+                    .frame(width: 24)
+                Text(title)
+                    .font(.subheadline)
+                    .foregroundStyle(Flat.textPrimary)
+                Spacer(minLength: 0)
+                Image(systemName: "chevron.right")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(Flat.textTertiary)
+            }
+            .padding(.horizontal, 16)
+            .frame(height: 46)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
     }
 
     // MARK: - 设备类型
@@ -242,9 +236,11 @@ struct CampusNetHomeView: View {
                     Text("自定义机型")
                         .font(.caption2.weight(.medium))
                         .foregroundStyle(Flat.textSecondary)
-                        .padding(.horizontal, 9)
+                        .padding(.horizontal, 10)
                         .padding(.vertical, 5)
-                        .flatPill()
+                        .background {
+                            Capsule(style: .continuous).fill(Flat.surfaceHigh)
+                        }
                 }
                 .buttonStyle(.plain)
             }
@@ -266,13 +262,8 @@ struct CampusNetHomeView: View {
                         .padding(.vertical, 12)
                         .background {
                             RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                .fill(selected ? Flat.accent.opacity(0.12) : Color.clear)
+                                .fill(selected ? Flat.accent.opacity(0.12) : Flat.surfaceHigh)
                         }
-                        .overlay {
-                            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                .strokeBorder(selected ? Color.clear : Flat.separator, lineWidth: 0.5)
-                        }
-                        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                     }
                     .buttonStyle(.plain)
                 }
