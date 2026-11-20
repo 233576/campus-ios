@@ -60,8 +60,8 @@ enum GlassPalette {
     static let textSecondary = Color.dyn(light: 0x8E8E93, dark: 0x8E8E93)
     static let textTertiary = Color.dyn(light: 0xC7C7CC, dark: 0x48484A)
 
-    static let radius: CGFloat = 16
-    static let cardRadius: CGFloat = 16
+    static let radius: CGFloat = 20
+    static let cardRadius: CGFloat = 20
     static let controlRadius: CGFloat = 10
     static let fieldRadius: CGFloat = 10
 
@@ -119,10 +119,22 @@ enum Flat {
 
 // MARK: - 背景
 
-/// 全局底色：干净的浅灰（暗色为纯黑），不铺任何渐变和光斑。
+/// 全局底：一层极浅的斜向渐变。
+///
+/// 玻璃全靠背后有东西可折射 —— 纯色底上不管怎么调材质都只是一块灰板，
+/// 所以这里必须留一层很淡的冷色过渡（浅灰 → 浅蓝）。
 struct FlatBackground: View {
+    @Environment(\.colorScheme) private var scheme
+
     var body: some View {
-        GlassPalette.background.ignoresSafeArea()
+        LinearGradient(
+            colors: scheme == .dark
+                ? [Color(red: 0.06, green: 0.06, blue: 0.08), Color(red: 0.03, green: 0.05, blue: 0.09)]
+                : [Color(red: 0.95, green: 0.95, blue: 0.97), Color(red: 0.90, green: 0.95, blue: 1.00)],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+        .ignoresSafeArea()
     }
 }
 
@@ -134,17 +146,22 @@ struct FlatCardModifier: ViewModifier {
     var fill: Color
 
     func body(content: Content) -> some View {
+        let shape = RoundedRectangle(cornerRadius: radius, style: .continuous)
         content
-            .background {
-                RoundedRectangle(cornerRadius: radius, style: .continuous)
-                    .fill(fill)
-            }
+            .background(.ultraThinMaterial, in: shape)
+            .clipShape(shape)
             .overlay {
-                RoundedRectangle(cornerRadius: radius, style: .continuous)
-                    .strokeBorder(GlassPalette.separator, lineWidth: 0.5)
+                // 边缘高光：左上最亮、右下几乎透明，模拟玻璃把光折过来
+                shape.stroke(
+                    LinearGradient(
+                        colors: [Color.white.opacity(0.85), Color.white.opacity(0.10)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    lineWidth: 1
+                )
             }
-            .clipShape(RoundedRectangle(cornerRadius: radius, style: .continuous))
-            .shadow(color: Color.black.opacity(0.03), radius: 12, x: 0, y: 4)
+            .shadow(color: Color.black.opacity(0.06), radius: 15, x: 0, y: 8)
     }
 }
 
@@ -175,16 +192,14 @@ struct TintedCardModifier: ViewModifier {
     var tint: Color
 
     func body(content: Content) -> some View {
+        let shape = RoundedRectangle(cornerRadius: radius, style: .continuous)
         content
-            .background {
-                RoundedRectangle(cornerRadius: radius, style: .continuous)
-                    .fill(GlassPalette.surface)
-            }
+            .background(.ultraThinMaterial, in: shape)
+            .clipShape(shape)
             .overlay {
-                RoundedRectangle(cornerRadius: radius, style: .continuous)
-                    .strokeBorder(tint.opacity(0.35), lineWidth: 0.8)
+                shape.stroke(tint.opacity(0.35), lineWidth: 1)
             }
-            .clipShape(RoundedRectangle(cornerRadius: radius, style: .continuous))
+            .shadow(color: Color.black.opacity(0.06), radius: 15, x: 0, y: 8)
     }
 }
 
@@ -198,13 +213,10 @@ struct FlatFieldModifier: ViewModifier {
         content
             .padding(.horizontal, 12)
             .padding(.vertical, 11)
-            .background {
-                RoundedRectangle(cornerRadius: radius, style: .continuous)
-                    .fill(fill)
-            }
+            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: radius, style: .continuous))
             .overlay {
                 RoundedRectangle(cornerRadius: radius, style: .continuous)
-                    .strokeBorder(GlassPalette.separator, lineWidth: 0.5)
+                    .stroke(Color.white.opacity(0.55), lineWidth: 1)
             }
             .clipShape(RoundedRectangle(cornerRadius: radius, style: .continuous))
             .shadow(color: Color.black.opacity(0.03), radius: 12, x: 0, y: 4)
@@ -240,12 +252,40 @@ struct FlatButtonStyle: ButtonStyle {
             .frame(maxWidth: .infinity)
             .frame(height: height)
             .background {
-                RoundedRectangle(cornerRadius: radius, style: .continuous)
-                    .fill(filled ? tint : GlassPalette.surfaceHigh)
+                let shape = RoundedRectangle(cornerRadius: radius, style: .continuous)
+                if filled {
+                    shape.fill(
+                        LinearGradient(
+                            colors: [Color.blue, Color(red: 0, green: 0.40, blue: 0.90)],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    )
+                } else {
+                    shape.fill(.ultraThinMaterial)
+                }
+            }
+            .overlay {
+                let shape = RoundedRectangle(cornerRadius: radius, style: .continuous)
+                shape.stroke(
+                    LinearGradient(
+                        colors: filled
+                            ? [Color.white.opacity(0.65), Color.white.opacity(0.05)]
+                            : [Color.white.opacity(0.75), Color.white.opacity(0.10)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    lineWidth: 1
+                )
             }
             .clipShape(RoundedRectangle(cornerRadius: radius, style: .continuous))
-            .opacity(configuration.isPressed ? 0.72 : 1)
-            .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
+            .shadow(color: filled ? Color.blue.opacity(0.4) : Color.black.opacity(0.05),
+                    radius: filled ? 10 : 6,
+                    x: 0,
+                    y: filled ? 5 : 3)
+            .opacity(configuration.isPressed ? 0.82 : 1)
+            .scaleEffect(configuration.isPressed ? 0.985 : 1)
+            .animation(.spring(response: 0.24, dampingFraction: 0.9), value: configuration.isPressed)
     }
 }
 
@@ -359,7 +399,7 @@ struct FlatDivider: View {
 
     var body: some View {
         Rectangle()
-            .fill(GlassPalette.separator)
+            .fill(Color.white.opacity(0.35))
             .frame(height: 0.5)
             .padding(.leading, inset)
     }
