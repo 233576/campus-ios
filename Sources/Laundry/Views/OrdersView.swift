@@ -29,7 +29,7 @@ struct OrdersView: View {
                     }
                 }
                 .padding(.horizontal, 16)
-                .padding(.bottom, 108)
+                .padding(.bottom, 88)
             }
             .refreshable {
                 await store.refreshOrders()
