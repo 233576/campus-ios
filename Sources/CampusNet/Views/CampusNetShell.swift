@@ -31,7 +31,7 @@ struct CampusNetShell: View {
     @State private var tab: CampusNetTab = .home
     @Namespace private var segment
 
-    private let barHeight: CGFloat = 40
+    private let barHeight: CGFloat = 44
 
     var body: some View {
         VStack(spacing: 0) {
@@ -56,42 +56,62 @@ struct CampusNetShell: View {
     }
 
     private var segmentBar: some View {
-        HStack(spacing: 1) {
-            ForEach(CampusNetTab.allCases) { item in
-                let selected = tab == item
-                Button {
-                    guard tab != item else { return }
-                    withAnimation(.spring(response: 0.28, dampingFraction: 0.92)) {
-                        tab = item
-                    }
-                } label: {
-                    VStack(spacing: 1) {
-                        Image(systemName: item.symbol)
-                            .font(.system(size: 14, weight: .semibold))
-                            .frame(height: 16)
-                        Text(item.title)
-                            .font(.system(size: 9.5, weight: .medium))
-                    }
-                    .foregroundStyle(selected ? Flat.accent : Flat.textSecondary)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 3)
-                    .background {
-                        if selected {
-                            RoundedRectangle(cornerRadius: 11, style: .continuous)
-                                .fill(Flat.accent.opacity(0.12))
-                                .matchedGeometryEffect(id: "campusNetSegment", in: segment)
-                        }
-                    }
-                    .contentShape(RoundedRectangle(cornerRadius: 11, style: .continuous))
+        GlassGroup(spacing: 14) {
+            HStack(spacing: 2) {
+                ForEach(CampusNetTab.allCases) { item in
+                    segmentButton(item)
                 }
-                .buttonStyle(PressScaleStyle(scale: 0.94))
             }
+            .padding(4)
+            .frame(height: barHeight)
+            .liquidGlassSurface(radius: barHeight / 2)
+            .overlay {
+                Capsule(style: .continuous)
+                    .strokeBorder(GlassPalette.edge.opacity(0.55), lineWidth: 0.8)
+            }
+            .shadow(color: GlassPalette.shadow, radius: 14, x: 0, y: 8)
         }
-        .padding(.horizontal, 4)
-        .frame(height: barHeight)
-        .liquidGlassSurface(radius: barHeight / 2)
         .padding(.horizontal, 18)
-        .padding(.top, 2)
-        .padding(.bottom, 8)
+        .padding(.top, 6)
+        .padding(.bottom, 10)
+    }
+
+    private func segmentButton(_ item: CampusNetTab) -> some View {
+        let selected = tab == item
+        return Button {
+            guard tab != item else { return }
+            withAnimation(.spring(response: 0.28, dampingFraction: 0.92)) {
+                tab = item
+            }
+        } label: {
+            HStack(spacing: 5) {
+                Image(systemName: item.symbol)
+                    .font(.system(size: 13, weight: .semibold))
+                Text(item.title)
+                    .font(.system(size: 12.5, weight: .semibold))
+            }
+            .foregroundStyle(selected ? Color.white : GlassPalette.textSecondary)
+            .frame(maxWidth: .infinity)
+            .frame(height: barHeight - 8)
+            .background {
+                if selected {
+                    let shape = Capsule(style: .continuous)
+                    ZStack {
+                        shape.fill(
+                            LinearGradient(colors: [GlassPalette.accent, GlassPalette.accent.opacity(0.82)],
+                                           startPoint: .top, endPoint: .bottom)
+                        )
+                        shape.fill(
+                            LinearGradient(colors: [Color.white.opacity(0.32), Color.clear],
+                                           startPoint: .top, endPoint: .center)
+                        )
+                    }
+                    .matchedGeometryEffect(id: "campusNetSegment", in: segment)
+                    .shadow(color: GlassPalette.accent.opacity(0.30), radius: 8, y: 3)
+                }
+            }
+            .contentShape(Capsule(style: .continuous))
+        }
+        .buttonStyle(PressScaleStyle(scale: 0.95))
     }
 }
