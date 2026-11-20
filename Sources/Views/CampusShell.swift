@@ -58,7 +58,6 @@ struct CampusShell: View {
 
             tabBar
         }
-        .preferredColorScheme(.light)
     }
 
     private func select(_ target: CampusSection) {
