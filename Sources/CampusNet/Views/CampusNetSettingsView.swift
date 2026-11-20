@@ -8,7 +8,6 @@ struct CampusNetSettingsView: View {
 
     @State private var portal = GiWifiProtocol.defaultPortal
     @State private var nasName = ""
-    @State private var editing: TerminalProfile?
     @State private var confirmingReset = false
 
     var body: some View {
@@ -19,16 +18,13 @@ struct CampusNetSettingsView: View {
             nasSection
             protocolSection
             keepOnlineSection
-            profileSection
+            CampusNetProfileSection()
             aboutSection
         }
         .appNavigation(title: "校园网设置")
         .onAppear {
             portal = store.settings.portalOverride
             nasName = store.settings.nasName
-        }
-        .sheet(item: $editing) { profile in
-            ProfileEditorView(profile: profile).environmentObject(store)
         }
         .alert("重新生成设备标识？", isPresented: $confirmingReset) {
             Button("取消", role: .cancel) {}
@@ -219,75 +215,6 @@ struct CampusNetSettingsView: View {
             }
         } header: {
             Text("保持在线")
-        }
-    }
-
-    // MARK: - 自定义机型
-
-    private var profileSection: some View {
-        Section {
-            if store.customProfiles.isEmpty {
-                Text("没有自定义机型。内置的手机 / 平板 / 电脑已经够用，需要特定型号再来这里加。")
-                    .font(Typography.footnote)
-                    .foregroundStyle(.secondary)
-            } else {
-                ForEach(store.customProfiles) { profile in
-                    profileRow(profile)
-                }
-            }
-
-            Button {
-                editing = TerminalProfile(name: "",
-                                          btype: DeviceKind.phone.btype,
-                                          staType: DeviceKind.phone.staType,
-                                          staModel: DeviceKind.phone.defaultModel,
-                                          macOverride: "")
-            } label: {
-                Label("新建自定义机型", systemImage: "plus.circle")
-                    .font(Typography.body)
-            }
-        } header: {
-            Text("自定义机型")
-        }
-    }
-
-    private func profileRow(_ profile: TerminalProfile) -> some View {
-        Button {
-            editing = profile
-        } label: {
-            HStack(spacing: Spacing.m) {
-                AppIconCircle(symbol: profile.kind.symbol, tint: .appBrand)
-                VStack(alignment: .leading, spacing: Spacing.xxs) {
-                    Text(profile.name.isEmpty ? "未命名" : profile.name)
-                        .font(Typography.rowTitle)
-                    Text(profile.subtitle)
-                        .font(Typography.rowSubtitle)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                }
-                Spacer(minLength: Spacing.s)
-                if profile.id == store.settings.selectedProfileID {
-                    Image(systemName: "checkmark")
-                        .font(Typography.subheadline.weight(.semibold))
-                        .foregroundStyle(Color.appBrand)
-                } else {
-                    AppChevron()
-                }
-            }
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .contextMenu {
-            Button {
-                store.selectProfile(profile.id)
-            } label: {
-                Label("设为当前", systemImage: "checkmark")
-            }
-            Button(role: .destructive) {
-                store.deleteProfile(profile.id)
-            } label: {
-                Label("删除", systemImage: "trash")
-            }
         }
     }
 

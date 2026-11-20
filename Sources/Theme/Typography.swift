@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// 全部走 Dynamic Type 语义字体，禁用 .system(size:)。
+/// 全部走 Dynamic Type 语义字体，不手写字号。
 enum Typography {
     static let pageTitle = Font.largeTitle.weight(.bold)
     static let title2 = Font.title2.weight(.semibold)

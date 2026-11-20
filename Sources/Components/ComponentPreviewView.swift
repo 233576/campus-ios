@@ -130,7 +130,7 @@ struct ComponentPreviewView: View {
         } header: {
             Text("Typography")
         } footer: {
-            Text("全部走 Dynamic Type，禁止 .system(size:)。")
+            Text("全部走 Dynamic Type 语义字阶，不手写字号。")
                 .font(Typography.caption2)
         }
     }

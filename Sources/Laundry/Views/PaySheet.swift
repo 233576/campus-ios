@@ -313,8 +313,8 @@ struct PaySheet: View {
                 .foregroundStyle(Flat.textTertiary)
             Spacer(minLength: 12)
             Text(value)
-                .font(.system(size: 13, weight: .medium,
-                              design: mono ? .monospaced : .default))
+                .font(mono ? Typography.mono.weight(.medium)
+                           : Typography.footnote.weight(.medium))
                 .foregroundStyle(Flat.textSecondary)
                 .multilineTextAlignment(.trailing)
         }

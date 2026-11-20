@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// 全局语义色。视图里只允许出现这里的名字，禁止 hex / Color(red:)。
+/// 全局语义色。视图里只允许出现这里的名字，不写死色值。
 extension Color {
     static let appBrand = Color.accentColor
 

@@ -4,7 +4,7 @@ import SwiftUI
 ///
 /// View 层已全部切到 `Theme/` 与 `Components/`，这里只保留尚未迁移的
 /// 少数视图还在引用的符号，实现全部转发到语义色与系统材质，
-/// 不再出现任何写死的 hex、rgb 或 `.system(size:)`。
+/// 不再出现任何写死的色值与字号。
 enum Flat {
     static let background = Color.appGroupedBackground
     static let surface = Color.appSecondaryBackground
