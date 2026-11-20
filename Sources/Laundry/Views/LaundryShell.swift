@@ -30,9 +30,8 @@ enum LaundryTab: String, CaseIterable, Identifiable {
 
 /// 洗衣模块外壳。
 ///
-/// 底部导航被上级 `CampusShell` 占用（洗衣 / 校园网），所以模块内改用顶部
-/// 分段切换。四段均分宽度：不再用横向 ScrollView —— 那样每段宽度按文字长短，
-/// 又会被滚动手势吃掉点击。
+/// 底部导航归 `CampusShell`，模块内用顶部玻璃分段：四段均分宽度。
+/// 不用横向 ScrollView —— 那样每段宽度按文字长短，滚动手势还会吃掉点击。
 struct LaundryShell: View {
     @EnvironmentObject private var store: LaundryStore
     @State private var tab: LaundryTab = .laundry
@@ -69,7 +68,7 @@ struct LaundryShell: View {
     }
 
     private var segmentBar: some View {
-        HStack(spacing: 4) {
+        HStack(spacing: 2) {
             ForEach(LaundryTab.allCases) { item in
                 let selected = tab == item
                 Button {
@@ -79,45 +78,39 @@ struct LaundryShell: View {
                         tab = item
                     }
                 } label: {
-                    HStack(spacing: 5) {
+                    VStack(spacing: 2) {
                         Image(systemName: item.symbol)
-                            .font(.system(size: 11, weight: .semibold))
+                            .font(.system(size: 15, weight: .semibold))
+                            .frame(height: 17)
                         Text(item.title)
-                            .font(.system(size: 12.5, weight: .semibold))
+                            .font(.system(size: 10, weight: .medium))
                     }
                     .foregroundStyle(selected ? Flat.accent : Flat.textSecondary)
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 8)
+                    .padding(.vertical, 5)
                     .background {
                         if selected {
-                            Capsule(style: .continuous)
-                                .fill(Flat.accent.opacity(0.15))
-                                .overlay {
-                                    Capsule(style: .continuous)
-                                        .strokeBorder(Flat.accent.opacity(0.45), lineWidth: 1)
-                                }
+                            RoundedRectangle(cornerRadius: 13, style: .continuous)
+                                .fill(Flat.accent.opacity(0.12))
                                 .matchedGeometryEffect(id: "laundrySegment", in: segment)
                         }
                     }
-                    .contentShape(Capsule(style: .continuous))
+                    .contentShape(RoundedRectangle(cornerRadius: 13, style: .continuous))
                 }
-                .buttonStyle(PressScaleStyle(scale: 0.95))
+                .buttonStyle(PressScaleStyle(scale: 0.94))
             }
         }
-        .padding(4)
-        .background {
-            ZStack {
-                Capsule(style: .continuous).fill(.ultraThinMaterial)
-                Capsule(style: .continuous).fill(Flat.surfaceHigh)
-            }
-        }
+        .padding(.horizontal, 5)
+        .padding(.vertical, 4)
+        .background { GlassCapsuleBacking() }
         .overlay {
-            Capsule(style: .continuous).strokeBorder(Flat.stroke, lineWidth: 1)
+            Capsule(style: .continuous)
+                .strokeBorder(Flat.glassEdge, lineWidth: 0.8)
         }
         .clipShape(Capsule(style: .continuous))
-        .shadow(color: Flat.glassShadow.opacity(0.8), radius: 10, x: 0, y: 5)
-        .padding(.horizontal, 14)
-        .padding(.top, 4)
+        .shadow(color: Flat.glassShadow.opacity(0.9), radius: 14, x: 0, y: 6)
+        .padding(.horizontal, 22)
+        .padding(.top, 2)
         .padding(.bottom, 8)
     }
 }
