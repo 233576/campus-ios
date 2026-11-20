@@ -1,105 +1,93 @@
 import SwiftUI
 
-/// 顶层两个板块。
-enum CampusSection: String, CaseIterable, Identifiable {
+/// 全 App 的一级导航：七个 Tab 全部平铺在系统 TabView 上。
+///
+/// 之前的「模块内顶部自绘分段 + 底部自绘胶囊」是双重导航，已彻底删除。
+/// 底部栏完全交给系统渲染，不设置任何 UITabBarAppearance。
+enum AppTab: String, CaseIterable, Identifiable {
     case laundry
+    case orders
+    case laundryLogs
+    case laundrySettings
     case campusNet
+    case netLogs
+    case netSettings
 
     var id: String { rawValue }
 
     var title: String {
         switch self {
         case .laundry: return "洗衣"
+        case .orders: return "订单"
+        case .laundryLogs: return "洗衣日志"
+        case .laundrySettings: return "洗衣设置"
         case .campusNet: return "校园网"
+        case .netLogs: return "校园网日志"
+        case .netSettings: return "校园网设置"
         }
     }
 
     var symbol: String {
         switch self {
         case .laundry: return "washer.fill"
+        case .orders: return "list.bullet.rectangle.portrait.fill"
+        case .laundryLogs: return "text.alignleft"
+        case .laundrySettings: return "gearshape.fill"
         case .campusNet: return "wifi"
+        case .netLogs: return "doc.text.magnifyingglass"
+        case .netSettings: return "slider.horizontal.3"
         }
     }
 }
 
-/// 校园助手主壳：内容区 + 标准底部 TabBar。
-///
-/// 底栏走 `safeAreaInset`，内容自动避让，不再需要每个页面手写底部留白。
-/// 选中态只改颜色，不做滑动指示块 —— iOS 原生 TabBar 就是这样，
-/// 也顺带避免了切换后命中区域错位的问题。
 struct CampusShell: View {
     @EnvironmentObject private var laundry: LaundryStore
     @EnvironmentObject private var campusNet: CampusNetStore
 
-    @State private var section: CampusSection = .laundry
-    @State private var visited: Set<CampusSection> = [.laundry]
+    @State private var tab: AppTab = .laundry
+    @State private var didAutoDetect = false
 
     var body: some View {
-        content
-            .safeAreaInset(edge: .bottom, spacing: 0) { tabBar }
-            .background(GlassPalette.background)
+        TabView(selection: $tab) {
+            NavigationStack {
+                LaundryView()
+                    .task(perform: autoDetectOnce)
+            }
+            .tag(AppTab.laundry)
+            .tabItem { Label(AppTab.laundry.title, systemImage: AppTab.laundry.symbol) }
+
+            NavigationStack { OrdersView() }
+                .tag(AppTab.orders)
+                .tabItem { Label(AppTab.orders.title, systemImage: AppTab.orders.symbol) }
+
+            NavigationStack { LaundryLogView() }
+                .tag(AppTab.laundryLogs)
+                .tabItem { Label(AppTab.laundryLogs.title, systemImage: AppTab.laundryLogs.symbol) }
+
+            NavigationStack { LaundrySettingsView() }
+                .tag(AppTab.laundrySettings)
+                .tabItem { Label(AppTab.laundrySettings.title, systemImage: AppTab.laundrySettings.symbol) }
+
+            NavigationStack { CampusNetHomeView() }
+                .tag(AppTab.campusNet)
+                .tabItem { Label(AppTab.campusNet.title, systemImage: AppTab.campusNet.symbol) }
+
+            NavigationStack { CampusNetLogView() }
+                .tag(AppTab.netLogs)
+                .tabItem { Label(AppTab.netLogs.title, systemImage: AppTab.netLogs.symbol) }
+
+            NavigationStack { CampusNetSettingsView() }
+                .tag(AppTab.netSettings)
+                .tabItem { Label(AppTab.netSettings.title, systemImage: AppTab.netSettings.symbol) }
+        }
+        .tint(.appBrand)
     }
 
-    private var content: some View {
-        ZStack {
-            if visited.contains(.laundry) {
-                LaundryShell()
-                    .opacity(section == .laundry ? 1 : 0)
-                    .allowsHitTesting(section == .laundry)
-                    .accessibilityHidden(section != .laundry)
-            }
-            if visited.contains(.campusNet) {
-                CampusNetShell()
-                    .opacity(section == .campusNet ? 1 : 0)
-                    .allowsHitTesting(section == .campusNet)
-                    .accessibilityHidden(section != .campusNet)
-            }
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
-
-    private func select(_ target: CampusSection) {
-        guard target != section else { return }
-        visited.insert(target)
-        withAnimation(.easeInOut(duration: 0.18)) {
-            section = target
-        }
-    }
-
-    private var tabBar: some View {
-        VStack(spacing: 0) {
-            HStack(spacing: 0) {
-                ForEach(CampusSection.allCases) { item in
-                    tabButton(item)
-                }
-            }
-            .frame(height: 48)
-            .padding(.top, 4)
-        }
-        .background(.ultraThinMaterial)
-        .overlay(alignment: .top) {
-            Rectangle()
-                .fill(Color.white.opacity(0.30))
-                .frame(height: 0.5)
-        }
-    }
-
-    private func tabButton(_ item: CampusSection) -> some View {
-        let selected = section == item
-        return Button {
-            select(item)
-        } label: {
-            VStack(spacing: 3) {
-                Image(systemName: item.symbol)
-                    .font(.system(size: 21, weight: selected ? .semibold : .regular))
-                    .frame(height: 24)
-                Text(item.title)
-                    .font(.system(size: 10, weight: selected ? .semibold : .medium))
-            }
-            .foregroundStyle(selected ? GlassPalette.accent : GlassPalette.textSecondary)
-            .frame(maxWidth: .infinity)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
+    /// 第一次进入洗衣 Tab 时自动检测一次连接状态；之后不再重复打扰。
+    @MainActor
+    private func autoDetectOnce() async {
+        guard !didAutoDetect else { return }
+        didAutoDetect = true
+        await laundry.autoDetectOnLaunch()
     }
 }
