@@ -56,53 +56,46 @@ struct CampusNetShell: View {
     }
 
     private var segmentBar: some View {
-        GlassGroup(spacing: 14) {
-            HStack(spacing: 2) {
-                ForEach(CampusNetTab.allCases) { item in
-                    segmentButton(item)
-                }
+        HStack(spacing: 0) {
+            ForEach(CampusNetTab.allCases) { item in
+                segmentButton(item)
             }
-            .padding(4)
-            .frame(height: barHeight)
-            .liquidGlassSurface(radius: barHeight / 2, tintOpacity: 0.04)
-            .overlay {
-                Capsule(style: .continuous)
-                    .strokeBorder(GlassPalette.edge.opacity(0.55), lineWidth: 0.8)
-            }
-            .shadow(color: GlassPalette.shadow, radius: 14, x: 0, y: 8)
         }
-        .padding(.horizontal, 18)
-        .padding(.top, 6)
-        .padding(.bottom, 10)
+        .padding(2)
+        .frame(height: 34)
+        .background(GlassPalette.surfaceHigh)
+        .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
+        .padding(.horizontal, 16)
+        .padding(.top, 8)
+        .padding(.bottom, 4)
     }
 
     private func segmentButton(_ item: CampusNetTab) -> some View {
         let selected = tab == item
         return Button {
             guard tab != item else { return }
-            withAnimation(.spring(response: 0.28, dampingFraction: 0.92)) {
+            withAnimation(.easeInOut(duration: 0.18)) {
                 tab = item
             }
         } label: {
-            HStack(spacing: 5) {
+            HStack(spacing: 4) {
                 Image(systemName: item.symbol)
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.system(size: 12, weight: .medium))
                 Text(item.title)
-                    .font(.system(size: 12.5, weight: .semibold))
+                    .font(.system(size: 13, weight: selected ? .semibold : .regular))
             }
-            .foregroundStyle(selected ? GlassPalette.accent : GlassPalette.textSecondary)
+            .foregroundStyle(selected ? GlassPalette.textPrimary : GlassPalette.textSecondary)
             .frame(maxWidth: .infinity)
-            .frame(height: barHeight - 8)
+            .frame(height: 30)
             .background {
                 if selected {
-                    Capsule(style: .continuous)
-                        .fill(Color.dyn(light: 0xFFFFFF, dark: 0xFFFFFF, lightAlpha: 0.52, darkAlpha: 0.13))
-                        .matchedGeometryEffect(id: "campusNetSegment", in: segment)
-                        .shadow(color: GlassPalette.shadow.opacity(0.6), radius: 5, y: 2)
+                    RoundedRectangle(cornerRadius: 7, style: .continuous)
+                        .fill(GlassPalette.surface)
+                        .shadow(color: Color.black.opacity(0.06), radius: 2, x: 0, y: 1)
                 }
             }
-            .contentShape(Capsule(style: .continuous))
+            .contentShape(Rectangle())
         }
-        .buttonStyle(PressScaleStyle(scale: 0.95))
+        .buttonStyle(.plain)
     }
 }
