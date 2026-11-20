@@ -16,7 +16,7 @@ extension View {
                             tintOpacity: Double = 0.28) -> some View {
         let shape = RoundedRectangle(cornerRadius: radius, style: .continuous)
         self
-            .background { shape.fill(tint.map { GlassPalette.surface } ?? GlassPalette.surface) }
+            .background { shape.fill(GlassPalette.surface) }
             .overlay { shape.strokeBorder(GlassPalette.separator, lineWidth: 0.5) }
             .clipShape(shape)
     }
