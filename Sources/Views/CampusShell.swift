@@ -58,7 +58,7 @@ struct CampusShell: View {
 
             tabBar
         }
-        .preferredColorScheme(.dark)
+        .preferredColorScheme(.light)
     }
 
     private func select(_ target: CampusSection) {
@@ -101,15 +101,19 @@ struct CampusShell: View {
             }
         }
         .padding(6)
-        .background(
+        .background {
+            // 底部导航本身就是一块玻璃：模糊 + 白薄涂 + 顶部镜面高光
+            ZStack {
+                Capsule(style: .continuous).fill(.ultraThinMaterial)
+                Capsule(style: .continuous).fill(Color.white.opacity(0.55))
+            }
+        }
+        .overlay {
             Capsule(style: .continuous)
-                .fill(Flat.surfaceHigh)
-                .overlay(
-                    Capsule(style: .continuous)
-                        .strokeBorder(Flat.strokeStrong, lineWidth: 1)
-                )
-                .shadow(color: .black.opacity(0.35), radius: 18, y: 10)
-        )
+                .strokeBorder(Flat.specular, lineWidth: 1)
+        }
+        .clipShape(Capsule(style: .continuous))
+        .shadow(color: Flat.glassShadow, radius: 22, x: 0, y: 12)
         .padding(.bottom, 6)
     }
 }
