@@ -34,40 +34,49 @@ extension CampusNetHomeView {
             }
             .buttonStyle(.plain)
         }
+        .listSectionSpacing(Spacing.m)
     }
 
-    // MARK: - 连接状态
+    // MARK: - 连接状态卡
 
-    var statusSection: some View {
-        Section {
-            HStack(spacing: Spacing.l) {
-                ZStack {
-                    Circle()
-                        .fill(store.state == .online
-                              ? Color.appSuccess.opacity(0.18)
-                              : Color(uiColor: .quaternarySystemFill))
-                    Image(systemName: statusSymbol)
-                        .font(Typography.title3.weight(.semibold))
-                        .foregroundStyle(statusColor)
-                }
-                .frame(width: 56, height: 56)
-
-                VStack(alignment: .leading, spacing: Spacing.xs) {
-                    Text(store.state.title)
-                        .font(Typography.sectionTitle)
-                    Text(store.detail)
-                        .font(Typography.footnote)
-                        .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-
-                Spacer(minLength: Spacing.xs)
-
-                StatusBadge(store.state == .online ? "在线" : "离线",
-                            kind: store.state == .online ? .success : .neutral)
+    /// 卡片自带 16pt 内边距与圆角，行本身透明 —— 这样状态卡、按钮组、
+    /// 说明文字之间才能用真实间距（24 / 8）收紧，而不是被 List 的默认行距撑开。
+    var statusCard: some View {
+        HStack(spacing: Spacing.l) {
+            ZStack {
+                Circle()
+                    .fill(store.state == .online
+                          ? Color.appSuccess.opacity(0.18)
+                          : Color(uiColor: .quaternarySystemFill))
+                Image(systemName: statusSymbol)
+                    .font(Typography.title3.weight(.semibold))
+                    .foregroundStyle(statusColor)
             }
-            .padding(.vertical, Spacing.xs)
+            .frame(width: 56, height: 56)
+
+            VStack(alignment: .leading, spacing: Spacing.xs) {
+                Text(store.state.title)
+                    .font(Typography.sectionTitle)
+                Text(statusDetail)
+                    .font(Typography.footnote)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            Spacer(minLength: Spacing.xs)
+
+            StatusBadge(store.state == .online ? "在线" : "离线",
+                        kind: store.state == .online ? .success : .neutral)
         }
+        .padding(Spacing.l)
+        .background(Color.appSecondaryBackground,
+                    in: RoundedRectangle(cornerRadius: Radius.l, style: .continuous))
+    }
+
+    /// 没有账号时不要指路「设置 → 账号管理」——账号卡就在这张卡上面，
+    /// 用户不需要知道层级路径。
+    var statusDetail: String {
+        store.settings.username.isEmpty ? "先添加账号，再连接校园网" : store.detail
     }
 
     var statusSymbol: String {
@@ -85,6 +94,10 @@ extension CampusNetHomeView {
         case .failed: return .appDanger
         case .offline, .idle: return .secondary
         }
+    }
+
+    var isCheckingNow: Bool {
+        store.state == .checking || store.state == .connecting
     }
 
     // MARK: - 认证方式
@@ -107,6 +120,7 @@ extension CampusNetHomeView {
             Text("认证被拒绝、或者想换资料时，用这里打开学校认证页手动登录一次。")
                 .font(Typography.caption2)
         }
+        .listSectionSpacing(Spacing.xl)
     }
 
     private func methodRow(symbol: String, title: String) -> some View {
