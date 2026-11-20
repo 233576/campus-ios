@@ -60,8 +60,8 @@ enum GlassPalette {
     static let textSecondary = Color.dyn(light: 0x8E8E93, dark: 0x8E8E93)
     static let textTertiary = Color.dyn(light: 0xC7C7CC, dark: 0x48484A)
 
-    static let radius: CGFloat = 12
-    static let cardRadius: CGFloat = 12
+    static let radius: CGFloat = 16
+    static let cardRadius: CGFloat = 16
     static let controlRadius: CGFloat = 10
     static let fieldRadius: CGFloat = 10
 
@@ -144,6 +144,7 @@ struct FlatCardModifier: ViewModifier {
                     .strokeBorder(GlassPalette.separator, lineWidth: 0.5)
             }
             .clipShape(RoundedRectangle(cornerRadius: radius, style: .continuous))
+            .shadow(color: Color.black.opacity(0.03), radius: 12, x: 0, y: 4)
     }
 }
 
@@ -206,6 +207,7 @@ struct FlatFieldModifier: ViewModifier {
                     .strokeBorder(GlassPalette.separator, lineWidth: 0.5)
             }
             .clipShape(RoundedRectangle(cornerRadius: radius, style: .continuous))
+            .shadow(color: Color.black.opacity(0.03), radius: 12, x: 0, y: 4)
     }
 }
 
