@@ -184,15 +184,32 @@ struct GlassLayer: ViewModifier {
 
 // MARK: - 卡片
 
+/// 卡片用「实体面 + 发丝边 + 轻阴影」，玻璃只留给导航胶囊。
+/// 整页都上玻璃会让背景折射叠成一片糊，文字对比度也会掉 —— App Store 里
+/// 只有 tab bar 是玻璃，内容全是实心的。
 struct FlatCardModifier: ViewModifier {
     var radius: CGFloat = Flat.cardRadius
     var fill: Color = Flat.surface
     var tint: Color? = nil
 
     func body(content: Content) -> some View {
-        content.modifier(
-            GlassLayer(radius: radius, tint: tint, base: fill)
-        )
+        let shape = RoundedRectangle(cornerRadius: radius, style: .continuous)
+        content
+            .background {
+                ZStack {
+                    shape.fill(Flat.surfaceHigh)
+                    if let tint {
+                        shape.fill(tint.opacity(0.08))
+                    } else {
+                        shape.fill(fill)
+                    }
+                }
+            }
+            .overlay {
+                shape.strokeBorder(Flat.hairline, lineWidth: 0.8)
+            }
+            .clipShape(shape)
+            .shadow(color: Flat.glassShadow.opacity(0.5), radius: 8, x: 0, y: 3)
     }
 }
 
