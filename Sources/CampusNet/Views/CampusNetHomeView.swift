@@ -117,7 +117,9 @@ struct CampusNetHomeView: View {
                 }
             }
             .frame(width: Spacing.rowMinHeight, height: Spacing.rowMinHeight)
+            .glassIconBackground()
         }
+        .buttonStyle(TabPressStyle())
         .accessibilityLabel("立即认证")
         .disabled(!canAuthenticate)
         .opacity(canAuthenticate ? 1 : 0.4)

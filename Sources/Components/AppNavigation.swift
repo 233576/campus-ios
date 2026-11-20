@@ -51,7 +51,9 @@ struct GlassToolbarButton: View {
                 .font(Typography.body)
                 .foregroundStyle(tint)
                 .frame(width: Spacing.rowMinHeight, height: Spacing.rowMinHeight)
+                .glassIconBackground()
         }
+        .buttonStyle(TabPressStyle())
         .accessibilityLabel(label)
     }
 }
@@ -69,7 +71,50 @@ struct GlassToolbarLink<Destination: Hashable>: View {
                 .font(Typography.body)
                 .foregroundStyle(tint)
                 .frame(width: Spacing.rowMinHeight, height: Spacing.rowMinHeight)
+                .glassIconBackground()
         }
+        .buttonStyle(TabPressStyle())
         .accessibilityLabel(label)
+    }
+}
+
+/// 工具栏图标的独立玻璃底：圆形玻璃 + 0.5pt 内描边。
+///
+/// 系统默认会把相邻 toolbar 按钮合并成一条共享背景，那样两个图标会被裹进一个
+/// 胶囊、左边留一大片空白，所以调用方会用 `sharedBackgroundVisibility(.hidden)`
+/// 关掉共享背景，再由这里各画各的。
+struct GlassIconBackground: ViewModifier {
+    @Environment(\.colorScheme) private var colorScheme
+
+    func body(content: Content) -> some View {
+        content
+            .background { surface }
+            .overlay {
+                Circle()
+                    .strokeBorder(colorScheme == .dark
+                                  ? Color.white.opacity(0.08)
+                                  : Color.black.opacity(0.06),
+                                  lineWidth: 0.5)
+            }
+    }
+
+    @ViewBuilder
+    private var surface: some View {
+        #if compiler(>=6.2)
+        if #available(iOS 26.0, *) {
+            Color.clear
+                .glassEffect(.regular.interactive(), in: Circle())
+        } else {
+            Circle().fill(.ultraThinMaterial)
+        }
+        #else
+        Circle().fill(.ultraThinMaterial)
+        #endif
+    }
+}
+
+extension View {
+    func glassIconBackground() -> some View {
+        modifier(GlassIconBackground())
     }
 }
