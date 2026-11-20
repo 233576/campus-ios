@@ -252,18 +252,6 @@ struct LaundryView: View {
         }
     }
 
-    private var emptySection: some View {
-        Section {
-            AppEmptyState(
-                title: "还没有选洗衣机",
-                message: "扫码或输入机器码启动洗衣机，也可从「最近用过」中选择。",
-                symbol: "washer"
-            )
-            .listRowInsets(EdgeInsets())
-            .listRowBackground(Color.clear)
-        }
-    }
-
     private var progressOrder: PGOrder? {
         if let running = store.runningOrder { return running }
         if let paid = store.latestPaidOrder, let end = paid.endsAt,
@@ -292,30 +280,21 @@ struct LaundryView: View {
     }
 
     private var bottomBar: some View {
-        VStack(spacing: 0) {
-            Button {
-                if store.loggedIn {
-                    let target = code
-                    hideActionBar()
-                    Task { _ = await store.resolve(code: target) }
-                } else {
-                    hideActionBar()
-                    store.needsLogin = true
-                }
-            } label: {
-                HStack(spacing: Spacing.s) {
-                    if store.isBusy {
-                        ProgressView().tint(.white)
-                    }
-                    Text(store.isBusy ? store.busyText : (store.loggedIn ? "查询这台洗衣机" : "登录后查询"))
-                }
+        PrimaryActionBar(
+            title: store.isBusy
+                ? store.busyText
+                : (store.loggedIn ? "查询这台洗衣机" : "登录后查询"),
+            isBusy: store.isBusy,
+            isDisabled: code.trimmingCharacters(in: .whitespaces).isEmpty,
+        ) {
+            if store.loggedIn {
+                let target = code
+                hideActionBar()
+                Task { _ = await store.resolve(code: target) }
+            } else {
+                hideActionBar()
+                store.needsLogin = true
             }
-            .buttonStyle(GlassButtonStyle(role: .primary))
-            .disabled(store.isBusy || code.trimmingCharacters(in: .whitespaces).isEmpty)
-            .padding(.horizontal, Spacing.page)
-            .padding(.top, Spacing.s)
-            .padding(.bottom, Spacing.s)
         }
-        .background(.bar)
     }
 }

@@ -250,23 +250,14 @@ struct CampusNetHomeView: View {
     }
 
     private var bottomBar: some View {
-        Button {
+        PrimaryActionBar(
+            title: buttonTitle,
+            isBusy: store.state == .connecting,
+            isDisabled: store.settings.username.isEmpty,
+        ) {
             hideActionBar()
             Task { await store.login() }
-        } label: {
-            HStack(spacing: Spacing.s) {
-                if store.state == .connecting {
-                    ProgressView().tint(.white)
-                }
-                Text(buttonTitle)
-            }
         }
-        .buttonStyle(GlassButtonStyle(role: .primary))
-        .disabled(store.state == .connecting || store.settings.username.isEmpty)
-        .opacity(store.state == .connecting || store.settings.username.isEmpty ? 0.5 : 1)
-        .padding(.horizontal, Spacing.page)
-        .padding(.vertical, Spacing.s)
-        .background(.bar)
     }
 
     // MARK: - 派生
