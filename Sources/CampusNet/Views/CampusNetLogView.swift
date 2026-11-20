@@ -52,7 +52,7 @@ struct CampusNetLogView: View {
         }
     }
 
-    private var filtered: [LogLine] {
+    private var filtered: [CampusNetStore.LogLine] {
         let keyword = query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !keyword.isEmpty else { return store.logs }
         return store.logs.filter {
@@ -61,7 +61,7 @@ struct CampusNetLogView: View {
         }
     }
 
-    private func row(_ line: LogLine) -> some View {
+    private func row(_ line: CampusNetStore.LogLine) -> some View {
         HStack(alignment: .top, spacing: Spacing.m) {
             Text(line.stamp)
                 .font(Typography.mono)
