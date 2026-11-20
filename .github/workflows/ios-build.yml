@@ -57,11 +57,36 @@ jobs:
           fi
           xcodegen --version
 
+      - name: Cache WeChat OpenSDK
+        uses: actions/cache@v4
+        with:
+          path: sdk
+          key: wechat-opensdk-xcframework-2.0.9
+
       - name: Fetch WeChat OpenSDK
         run: |
-          curl -sSL -o /tmp/wxopen.zip https://dldir1.qq.com/WechatWebDev/opensdk/XCFramework/OpenSDK2.0.9.zip
-          mkdir -p sdk
-          unzip -q /tmp/wxopen.zip -d sdk
+          set -euo pipefail
+          if [ -d "sdk/WechatOpenSDK.xcframework" ]; then
+            echo "using cached SDK"; ls sdk; exit 0
+          fi
+          MIRRORS=(
+            "https://dldir1.qq.com/WechatWebDev/opensdk/XCFramework/OpenSDK2.0.9.zip"
+            "https://dldir1v6.qq.com/WechatWebDev/opensdk/XCFramework/OpenSDK2.0.9.zip"
+          )
+          for URL in "${MIRRORS[@]}"; do
+            for TRY in 1 2 3; do
+              echo "download try ${TRY}: ${URL}"
+              if curl -fsSL --connect-timeout 20 --max-time 240 --retry 2 --retry-delay 3 -o /tmp/wxopen.zip "$URL"; then
+                mkdir -p sdk
+                if unzip -q -o /tmp/wxopen.zip -d sdk && [ -d "sdk/WechatOpenSDK.xcframework" ]; then
+                  ls sdk; exit 0
+                fi
+              fi
+              sleep 6
+            done
+          done
+          echo "::error::WeChat OpenSDK download failed (all mirrors)"
+          exit 1
 
       - name: Generate project
         run: xcodegen generate --spec project.yml
@@ -187,12 +212,36 @@ jobs:
           command -v xcodegen >/dev/null || brew install xcodegen
           xcodegen --version
 
+      - name: Cache WeChat OpenSDK
+        uses: actions/cache@v4
+        with:
+          path: sdk
+          key: wechat-opensdk-xcframework-2.0.9
+
       - name: Fetch WeChat OpenSDK
-        if: steps.secrets.outputs.ok == 'true'
         run: |
-          curl -sSL -o /tmp/wxopen.zip https://dldir1.qq.com/WechatWebDev/opensdk/XCFramework/OpenSDK2.0.9.zip
-          mkdir -p sdk
-          unzip -q /tmp/wxopen.zip -d sdk
+          set -euo pipefail
+          if [ -d "sdk/WechatOpenSDK.xcframework" ]; then
+            echo "using cached SDK"; ls sdk; exit 0
+          fi
+          MIRRORS=(
+            "https://dldir1.qq.com/WechatWebDev/opensdk/XCFramework/OpenSDK2.0.9.zip"
+            "https://dldir1v6.qq.com/WechatWebDev/opensdk/XCFramework/OpenSDK2.0.9.zip"
+          )
+          for URL in "${MIRRORS[@]}"; do
+            for TRY in 1 2 3; do
+              echo "download try ${TRY}: ${URL}"
+              if curl -fsSL --connect-timeout 20 --max-time 240 --retry 2 --retry-delay 3 -o /tmp/wxopen.zip "$URL"; then
+                mkdir -p sdk
+                if unzip -q -o /tmp/wxopen.zip -d sdk && [ -d "sdk/WechatOpenSDK.xcframework" ]; then
+                  ls sdk; exit 0
+                fi
+              fi
+              sleep 6
+            done
+          done
+          echo "::error::WeChat OpenSDK download failed (all mirrors)"
+          exit 1
 
       - name: Import certificate and profile
         if: steps.secrets.outputs.ok == 'true'
