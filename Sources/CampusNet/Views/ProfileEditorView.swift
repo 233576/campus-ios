@@ -62,7 +62,6 @@ struct ProfileEditorView: View {
             }
             .onAppear(perform: fill)
         }
-        .preferredColorScheme(.light)
     }
 
     private var canSave: Bool {
