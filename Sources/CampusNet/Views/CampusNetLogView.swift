@@ -38,7 +38,7 @@ struct CampusNetLogView: View {
                     }
                     .padding(.horizontal, 16)
                     .padding(.top, 8)
-                    .padding(.bottom, 96)
+                    .padding(.bottom, 88)
                 }
                 .scrollIndicators(.hidden)
             }
