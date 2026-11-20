@@ -17,6 +17,8 @@ struct GlassButtonStyle: ButtonStyle {
     var role: GlassButtonRole = .primary
     var fullWidth: Bool = true
 
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(Typography.headline)
@@ -45,7 +47,7 @@ struct GlassButtonStyle: ButtonStyle {
         switch role {
         case .primary:
             #if compiler(>=6.2)
-            if #available(iOS 26.0, *) {
+            if #available(iOS 26.0, *), !reduceTransparency {
                 Color.clear
                     .glassEffect(.regular.tint(.appBrand.opacity(0.55)).interactive(), in: shape)
             } else {
@@ -56,7 +58,7 @@ struct GlassButtonStyle: ButtonStyle {
             #endif
         case .secondary:
             #if compiler(>=6.2)
-            if #available(iOS 26.0, *) {
+            if #available(iOS 26.0, *), !reduceTransparency {
                 Color.clear.glassEffect(.regular.interactive(), in: shape)
             } else {
                 shape.fill(Color.appTertiaryFill)
