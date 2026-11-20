@@ -25,11 +25,13 @@ enum CampusNetTab: String, CaseIterable, Identifiable {
     }
 }
 
-/// 校园网模块外壳。底部导航归 `CampusShell`，模块内用顶部玻璃分段（均分宽度）。
+/// 校园网模块外壳。底部导航归 `CampusShell`，模块内用顶部液态玻璃分段（均分宽度）。
 struct CampusNetShell: View {
     @EnvironmentObject private var store: CampusNetStore
     @State private var tab: CampusNetTab = .home
     @Namespace private var segment
+
+    private let barHeight: CGFloat = 40
 
     var body: some View {
         VStack(spacing: 0) {
@@ -54,7 +56,7 @@ struct CampusNetShell: View {
     }
 
     private var segmentBar: some View {
-        HStack(spacing: 2) {
+        HStack(spacing: 1) {
             ForEach(CampusNetTab.allCases) { item in
                 let selected = tab == item
                 Button {
@@ -63,38 +65,32 @@ struct CampusNetShell: View {
                         tab = item
                     }
                 } label: {
-                    VStack(spacing: 2) {
+                    VStack(spacing: 1) {
                         Image(systemName: item.symbol)
-                            .font(.system(size: 15, weight: .semibold))
-                            .frame(height: 17)
+                            .font(.system(size: 13, weight: .semibold))
+                            .frame(height: 15)
                         Text(item.title)
-                            .font(.system(size: 10, weight: .medium))
+                            .font(.system(size: 9.5, weight: .medium))
                     }
                     .foregroundStyle(selected ? Flat.accent : Flat.textSecondary)
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 5)
+                    .padding(.vertical, 4)
                     .background {
                         if selected {
-                            RoundedRectangle(cornerRadius: 13, style: .continuous)
+                            RoundedRectangle(cornerRadius: 11, style: .continuous)
                                 .fill(Flat.accent.opacity(0.12))
                                 .matchedGeometryEffect(id: "campusNetSegment", in: segment)
                         }
                     }
-                    .contentShape(RoundedRectangle(cornerRadius: 13, style: .continuous))
+                    .contentShape(RoundedRectangle(cornerRadius: 11, style: .continuous))
                 }
                 .buttonStyle(PressScaleStyle(scale: 0.94))
             }
         }
-        .padding(.horizontal, 5)
-        .padding(.vertical, 4)
-        .background { GlassCapsuleBacking() }
-        .overlay {
-            Capsule(style: .continuous)
-                .strokeBorder(Flat.glassEdge, lineWidth: 0.8)
-        }
-        .clipShape(Capsule(style: .continuous))
-        .shadow(color: Flat.glassShadow.opacity(0.9), radius: 14, x: 0, y: 6)
-        .padding(.horizontal, 22)
+        .padding(.horizontal, 4)
+        .frame(height: barHeight - 8)
+        .liquidGlass(radius: (barHeight - 8) / 2, strength: 12, edgeWidth: 11)
+        .padding(.horizontal, 26)
         .padding(.top, 2)
         .padding(.bottom, 8)
     }
