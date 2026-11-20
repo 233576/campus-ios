@@ -23,15 +23,12 @@ struct CampusNetHomeView: View {
                     }
                     .padding(.horizontal, 16)
                     .padding(.top, 6)
-                    .padding(.bottom, 78)
+                    .padding(.bottom, 16)
                 }
                 .scrollIndicators(.hidden)
                 .refreshable { await store.refreshState() }
             }
-            .navigationTitle("GiWiFi")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbarBackground(Flat.background, for: .navigationBar)
-            .toolbarBackground(.visible, for: .navigationBar)
+            .toolbar(.hidden, for: .navigationBar)
             .sheet(isPresented: $showAccounts) {
                 AccountsView(isPicker: true).environmentObject(store)
             }
@@ -207,7 +204,7 @@ struct CampusNetHomeView: View {
                     .font(.footnote.weight(.medium))
                     .frame(maxWidth: .infinity)
             }
-            .buttonStyle(FlatButtonStyle(tint: Flat.purple, filled: false, height: 42))
+            .buttonStyle(FlatButtonStyle(tint: Flat.accent, filled: false, height: 42))
             .disabled(store.state == .connecting)
 
             // 常驻入口：账号绑在别的设备上（43/203）时点这里换绑到本机
@@ -218,7 +215,7 @@ struct CampusNetHomeView: View {
                     if store.state == .connecting && store.rebinding {
                         ProgressView()
                             .progressViewStyle(.circular)
-                            .tint(Flat.orange)
+                            .tint(Flat.accent)
                     } else {
                         Image(systemName: "iphone.and.arrow.forward")
                     }
@@ -227,7 +224,7 @@ struct CampusNetHomeView: View {
                 }
                 .frame(maxWidth: .infinity)
             }
-            .buttonStyle(FlatButtonStyle(tint: Flat.orange, filled: store.needsRebind, height: 42))
+            .buttonStyle(FlatButtonStyle(tint: Flat.accent, filled: store.needsRebind, height: 42))
             .disabled(store.state == .connecting)
         }
     }
@@ -267,7 +264,15 @@ struct CampusNetHomeView: View {
                         .foregroundStyle(selected ? Flat.accent : Flat.textSecondary)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 12)
-                        .flatPill(selected: selected)
+                        .background {
+                            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                .fill(selected ? Flat.accent.opacity(0.12) : Color.clear)
+                        }
+                        .overlay {
+                            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                .strokeBorder(selected ? Color.clear : Flat.separator, lineWidth: 0.5)
+                        }
+                        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                     }
                     .buttonStyle(.plain)
                 }
