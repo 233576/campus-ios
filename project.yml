@@ -1,0 +1,78 @@
+name: Campus
+options:
+  bundleIdPrefix: com.campus
+  deploymentTarget:
+    iOS: "16.0"
+  createIntermediateGroups: true
+
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    IPHONEOS_DEPLOYMENT_TARGET: "16.0"
+    ENABLE_BITCODE: NO
+    CODE_SIGNING_ALLOWED: NO
+    CODE_SIGNING_REQUIRED: NO
+    CODE_SIGN_IDENTITY: ""
+    DEVELOPMENT_TEAM: ""
+    MARKETING_VERSION: "1.0.0"
+    CURRENT_PROJECT_VERSION: "1"
+
+targets:
+  Campus:
+    type: application
+    platform: iOS
+    deploymentTarget: "16.0"
+    sources:
+      - path: Sources
+    dependencies:
+      - framework: sdk/WechatOpenSDK.xcframework
+        embed: false
+        codeSign: false
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.campus.ios
+        PRODUCT_NAME: Campus
+        INFOPLIST_FILE: Support/Info.plist
+        TARGETED_DEVICE_FAMILY: "1,2"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        SWIFT_EMIT_LOC_STRINGS: NO
+        GENERATE_INFOPLIST_FILE: NO
+        OTHER_LDFLAGS: "$(inherited) -ObjC -lz -lsqlite3 -lc++"
+    info:
+      path: Support/Info.plist
+      properties:
+        CFBundleDisplayName: 校园助手
+        NSCameraUsageDescription: 需要相机扫描洗衣机上的二维码，识别出是哪一台机器。
+        NSPhotoLibraryAddUsageDescription: 保存支付二维码到相册，方便用支付宝或微信扫一扫从相册选图付款。
+        NSLocalNetworkUsageDescription: 需要访问校园网网关完成 GiWiFi 认证，并读取当前 Wi-Fi 的局域网地址。
+        CFBundleShortVersionString: "1.0.0"
+        CFBundleVersion: "1"
+        UILaunchScreen: {}
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+        UIUserInterfaceStyle: Dark
+        NSSupportsLiveActivities: false
+        UIBackgroundModes: []
+        NSAppTransportSecurity:
+          NSAllowsArbitraryLoads: true
+        LSApplicationQueriesSchemes:
+          - alipays
+          - alipay
+          - alipayqr
+          - weixin
+          - weixinULAPI
+          - weixinURLParamsAPI
+
+schemes:
+  Campus:
+    build:
+      targets:
+        Campus: all
+    run:
+      config: Release
+    archive:
+      config: Release
+
+configs:
+  Debug: debug
+  Release: release
