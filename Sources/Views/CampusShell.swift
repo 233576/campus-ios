@@ -36,7 +36,7 @@ struct CampusShell: View {
     @State private var visited: Set<CampusSection> = [.laundry]
     @Namespace private var indicator
 
-    private let barHeight: CGFloat = 46
+    private let barHeight: CGFloat = 40
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -79,10 +79,10 @@ struct CampusShell: View {
                 } label: {
                     VStack(spacing: 2) {
                         Image(systemName: item.symbol)
-                            .font(.system(size: 16, weight: .semibold))
-                            .frame(height: 18)
+                            .font(.system(size: 15, weight: .semibold))
+                            .frame(height: 17)
                         Text(item.title)
-                            .font(.system(size: 9, weight: .medium))
+                            .font(.system(size: 8.5, weight: .medium))
                     }
                     .foregroundStyle(selected ? Flat.accent : Flat.textSecondary)
                     .frame(maxWidth: .infinity)
@@ -100,9 +100,9 @@ struct CampusShell: View {
             }
         }
         .padding(.horizontal, 4)
-        .frame(height: barHeight - 8)
-        .liquidGlass(radius: (barHeight - 8) / 2, strength: 16, edgeWidth: 14)
-        .padding(.horizontal, 52)
+        .frame(height: barHeight)
+        .liquidGlassSurface(radius: barHeight / 2, interactive: true)
+        .padding(.horizontal, 68)
         .padding(.bottom, 6)
     }
 }
