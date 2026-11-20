@@ -25,6 +25,7 @@ struct LaundryView: View {
             }
             AppList {
                 accountSection
+                navigationSection
                 codeSection
                 if let device = store.device {
                     LaundryDeviceSection(device: device, confirming: $confirming)
@@ -39,7 +40,7 @@ struct LaundryView: View {
                 }
             }
         }
-        .appNavigation(title: "小猿助手", subtitle: "洗衣机 · 扫码即用")
+        .appNavigation(title: "胖乖洗衣", subtitle: "洗衣机 · 扫码即用")
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 GlassToolbarButton(symbol: "arrow.clockwise", label: "刷新") {
@@ -119,7 +120,7 @@ struct LaundryView: View {
         Section {
             HStack(spacing: Spacing.m) {
                 ZStack {
-                    Circle().fill(Color.appTertiaryFill)
+                    Circle().fill(Color(uiColor: .quaternarySystemFill))
                     Image(systemName: store.loggedIn ? "person.fill" : "person.crop.circle.badge.questionmark")
                         .font(Typography.subheadline.weight(.semibold))
                         .foregroundStyle(Color.appBrand)
@@ -161,6 +162,37 @@ struct LaundryView: View {
         }
     }
 
+    /// 模块内的二级页面入口。以前这三项占了 TabBar，现在只是栈里的一层。
+    private var navigationSection: some View {
+        Section {
+            NavigationLink(value: LaundryRoute.orders) {
+                entryRow("我的订单", symbol: "list.bullet.rectangle.portrait",
+                         detail: store.loggedIn ? "\(store.orders.count) 条" : nil)
+            }
+            NavigationLink(value: LaundryRoute.logs) {
+                entryRow("请求日志", symbol: "text.alignleft", detail: "\(store.logs.count) 行")
+            }
+            NavigationLink(value: LaundryRoute.settings) {
+                entryRow("洗衣设置", symbol: "gearshape", detail: nil)
+            }
+        }
+    }
+
+    private func entryRow(_ title: String, symbol: String, detail: String?) -> some View {
+        HStack(spacing: Spacing.m) {
+            AppIconCircle(symbol: symbol, tint: .appBrand)
+            Text(title).font(Typography.rowTitle)
+            Spacer(minLength: Spacing.s)
+            if let detail {
+                Text(detail)
+                    .font(Typography.caption2)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding(.vertical, Spacing.xxs)
+        .contentShape(Rectangle())
+    }
+
     private var accountSubtitle: String {
         guard store.loggedIn else { return "手机号 + 验证码，10 秒登录" }
         let vip = store.user?.hasVip == true ? " · 会员" : ""
@@ -200,7 +232,7 @@ struct LaundryView: View {
         } footer: {
             Text(store.loggedIn
                  ? "扫洗衣机身上的二维码，或手动输入机器码。"
-                 : "扫码接口必须带登录凭证，未登录时服务端会回一句「版本过低」，其实是没登录。")
+                 : "登录后再扫码，未登录时无法查询机器状态。")
                 .font(Typography.caption2)
                 .foregroundStyle(.tertiary)
         }
@@ -210,7 +242,7 @@ struct LaundryView: View {
         Section {
             AppEmptyState(
                 title: "还没有选洗衣机",
-                message: "扫一下洗衣机身上的二维码，或者直接输入机器码；也可以在下面「最近用过」里点一台。",
+                message: "扫码或输入机器码启动洗衣机，也可从「最近用过」中选择。",
                 symbol: "washer"
             )
             .listRowInsets(EdgeInsets())
@@ -246,7 +278,6 @@ struct LaundryView: View {
             }
             .buttonStyle(GlassButtonStyle(role: .primary))
             .disabled(store.isBusy || code.trimmingCharacters(in: .whitespaces).isEmpty)
-            .opacity(store.isBusy || code.trimmingCharacters(in: .whitespaces).isEmpty ? 0.5 : 1)
             .padding(.horizontal, Spacing.page)
             .padding(.top, Spacing.s)
             .padding(.bottom, Spacing.s)

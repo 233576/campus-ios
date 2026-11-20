@@ -1,41 +1,34 @@
 import SwiftUI
+import UIKit
 
-/// 全 App 的一级导航：七个 Tab 全部平铺在系统 TabView 上。
+/// 底部只有两个一级模块：洗衣、校园网。
 ///
-/// 之前的「模块内顶部自绘分段 + 底部自绘胶囊」是双重导航，已彻底删除。
-/// 底部栏完全交给系统渲染，不设置任何 UITabBarAppearance。
-enum AppTab: String, CaseIterable, Identifiable {
+/// 每个模块有自己的 `NavigationStack` 与独立的 `NavigationPath`，
+/// 切 Tab 时各自的栈状态原样保留。订单 / 日志 / 设置全部是模块内的二级页面。
+///
+/// TabBar 完全交给系统渲染（iOS 26 是液态玻璃胶囊），这里不设置任何
+/// `UITabBarAppearance` / `toolbarBackground`，也不做自绘底栏。
+enum AppTab: Hashable {
     case laundry
-    case orders
-    case laundryLogs
-    case laundrySettings
     case campusNet
-    case netLogs
-    case netSettings
 
-    var id: String { rawValue }
-
+    /// Tab 标题固定为模块名，不带品牌后缀。
     var title: String {
         switch self {
         case .laundry: return "洗衣"
-        case .orders: return "订单"
-        case .laundryLogs: return "洗衣日志"
-        case .laundrySettings: return "洗衣设置"
         case .campusNet: return "校园网"
-        case .netLogs: return "校园网日志"
-        case .netSettings: return "校园网设置"
         }
     }
 
+    /// `washing.machine.fill` 是 iOS 26 新增符号，低版本回落到 `washer.fill`。
     var symbol: String {
         switch self {
-        case .laundry: return "washer.fill"
-        case .orders: return "list.bullet.rectangle.portrait.fill"
-        case .laundryLogs: return "text.alignleft"
-        case .laundrySettings: return "gearshape.fill"
-        case .campusNet: return "wifi"
-        case .netLogs: return "doc.text.magnifyingglass"
-        case .netSettings: return "slider.horizontal.3"
+        case .laundry:
+            return UIImage(systemName: "washing.machine.fill") != nil
+                ? "washing.machine.fill"
+                : "washer.fill"
+        case .campusNet:
+            return "wifi"
         }
     }
 }
@@ -45,40 +38,30 @@ struct CampusShell: View {
     @EnvironmentObject private var campusNet: CampusNetStore
 
     @State private var tab: AppTab = .laundry
+    @State private var laundryPath = NavigationPath()
+    @State private var campusPath = NavigationPath()
     @State private var didAutoDetect = false
 
     var body: some View {
         TabView(selection: $tab) {
-            NavigationStack {
+            NavigationStack(path: $laundryPath) {
                 LaundryView()
+                    .navigationDestination(for: LaundryRoute.self) { route in
+                        LaundryDestination(route: route)
+                    }
                     .task { await autoDetectOnce() }
             }
             .tag(AppTab.laundry)
             .tabItem { Label(AppTab.laundry.title, systemImage: AppTab.laundry.symbol) }
 
-            NavigationStack { OrdersView() }
-                .tag(AppTab.orders)
-                .tabItem { Label(AppTab.orders.title, systemImage: AppTab.orders.symbol) }
-
-            NavigationStack { LaundryLogView() }
-                .tag(AppTab.laundryLogs)
-                .tabItem { Label(AppTab.laundryLogs.title, systemImage: AppTab.laundryLogs.symbol) }
-
-            NavigationStack { LaundrySettingsView() }
-                .tag(AppTab.laundrySettings)
-                .tabItem { Label(AppTab.laundrySettings.title, systemImage: AppTab.laundrySettings.symbol) }
-
-            NavigationStack { CampusNetHomeView() }
-                .tag(AppTab.campusNet)
-                .tabItem { Label(AppTab.campusNet.title, systemImage: AppTab.campusNet.symbol) }
-
-            NavigationStack { CampusNetLogView() }
-                .tag(AppTab.netLogs)
-                .tabItem { Label(AppTab.netLogs.title, systemImage: AppTab.netLogs.symbol) }
-
-            NavigationStack { CampusNetSettingsView() }
-                .tag(AppTab.netSettings)
-                .tabItem { Label(AppTab.netSettings.title, systemImage: AppTab.netSettings.symbol) }
+            NavigationStack(path: $campusPath) {
+                CampusNetHomeView()
+                    .navigationDestination(for: CampusRoute.self) { route in
+                        CampusDestination(route: route)
+                    }
+            }
+            .tag(AppTab.campusNet)
+            .tabItem { Label(AppTab.campusNet.title, systemImage: AppTab.campusNet.symbol) }
         }
         .tint(.appBrand)
     }

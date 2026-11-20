@@ -7,6 +7,10 @@ import SwiftUI
 /// - plain：纯文字
 ///
 /// 玻璃只允许出现在这些浮动控件上，列表行里一律用 secondary 的实心降级。
+///
+/// 禁用态不再靠外部 `.opacity(0.5)` 硬压 —— 那样在深色模式下会变成
+/// 「灰底灰字」看不清。这里统一换成 `tertiarySystemFill` 底 + `tertiaryLabel` 字，
+/// 深浅色都由系统保证对比度。
 enum GlassButtonRole {
     case primary
     case secondary
@@ -17,6 +21,7 @@ struct GlassButtonStyle: ButtonStyle {
     var role: GlassButtonRole = .primary
     var fullWidth: Bool = true
 
+    @Environment(\.isEnabled) private var isEnabled
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
 
     func makeBody(configuration: Configuration) -> some View {
@@ -28,12 +33,15 @@ struct GlassButtonStyle: ButtonStyle {
             .padding(.horizontal, fullWidth ? 0 : Spacing.l)
             .background { background }
             .clipShape(Capsule(style: .continuous))
-            .opacity(configuration.isPressed ? 0.82 : 1)
-            .scaleEffect(configuration.isPressed ? 0.985 : 1)
+            .opacity(configuration.isPressed && isEnabled ? 0.82 : 1)
+            .scaleEffect(configuration.isPressed && isEnabled ? 0.985 : 1)
             .animation(.spring(response: 0.24, dampingFraction: 0.9), value: configuration.isPressed)
     }
 
     private var foreground: Color {
+        guard isEnabled else {
+            return role == .plain ? Color(uiColor: .tertiaryLabel) : Color(uiColor: .tertiaryLabel)
+        }
         switch role {
         case .primary: return .white
         case .secondary: return .appBrand
@@ -44,30 +52,46 @@ struct GlassButtonStyle: ButtonStyle {
     @ViewBuilder
     private var background: some View {
         let shape = Capsule(style: .continuous)
-        switch role {
-        case .primary:
-            #if compiler(>=6.2)
-            if #available(iOS 26.0, *), !reduceTransparency {
+
+        if !isEnabled {
+            shape.fill(Color(uiColor: .tertiarySystemFill))
+        } else if role == .plain {
+            Color.clear
+        } else if reduceTransparency {
+            shape.fill(role == .primary ? Color.appBrand : Color(uiColor: .secondarySystemFill))
+        } else {
+            glassBackground(shape: shape)
+        }
+    }
+
+    @ViewBuilder
+    private func glassBackground(shape: Capsule) -> some View {
+        #if compiler(>=6.2)
+        if #available(iOS 26.0, *) {
+            switch role {
+            case .primary:
                 Color.clear
                     .glassEffect(.regular.tint(.appBrand.opacity(0.55)).interactive(), in: shape)
-            } else {
-                shape.fill(Color.appBrand)
+            default:
+                Color.clear
+                    .glassEffect(.regular.interactive(), in: shape)
             }
-            #else
+        } else {
+            fallback(shape: shape)
+        }
+        #else
+        fallback(shape: shape)
+        #endif
+    }
+
+    @ViewBuilder
+    private func fallback(shape: Capsule) -> some View {
+        switch role {
+        case .primary:
             shape.fill(Color.appBrand)
-            #endif
-        case .secondary:
-            #if compiler(>=6.2)
-            if #available(iOS 26.0, *), !reduceTransparency {
-                Color.clear.glassEffect(.regular.interactive(), in: shape)
-            } else {
-                shape.fill(Color.appTertiaryFill)
-            }
-            #else
-            shape.fill(Color.appTertiaryFill)
-            #endif
-        case .plain:
-            Color.clear
+        default:
+            shape.fill(Color(uiColor: .secondarySystemFill))
+                .overlay { shape.strokeBorder(Color.appSeparator, lineWidth: 0.5) }
         }
     }
 }

@@ -6,9 +6,9 @@ import UIKit
 /// 全部走 AppList Section；「立即认证」用 safeAreaInset 固定在底部。
 /// 原来的顶部自绘分段已随模块外壳一起删除，这里是 TabView 的一级页面。
 struct CampusNetHomeView: View {
-    @EnvironmentObject private var store: CampusNetStore
+    @EnvironmentObject var store: CampusNetStore
 
-    @State private var showAccounts = false
+    @State var showAccounts = false
     @State private var showingProfileEditor = false
     @State private var showingPortalWeb = false
 
@@ -16,12 +16,18 @@ struct CampusNetHomeView: View {
         AppList {
             accountSection
             statusSection
+            linksSection
             actionSection
             deviceSection
             autoSection
             infoSection
         }
-        .appNavigation(title: "校园网")
+        .appNavigation(title: "GiWiFi 助手", subtitle: "校园网 · 一键认证")
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                GlassToolbarLink(symbol: "gearshape", label: "校园网设置", value: CampusRoute.settings)
+            }
+        }
         .refreshable { await store.refreshState() }
         .safeAreaInset(edge: .bottom, spacing: 0) { bottomBar }
         .sheet(isPresented: $showAccounts) {
@@ -62,33 +68,6 @@ struct CampusNetHomeView: View {
         }
     }
 
-    // MARK: - 账号
-
-    private var accountSection: some View {
-        Section {
-            Button {
-                showAccounts = true
-            } label: {
-                HStack(spacing: Spacing.m) {
-                    AppIconCircle(symbol: "person.fill", tint: .appBrand)
-                    VStack(alignment: .leading, spacing: Spacing.xxs) {
-                        Text(store.currentAccountName).font(Typography.rowTitle)
-                        Text(store.settings.username.isEmpty ? "点此添加或登录账号" : store.settings.username)
-                            .font(Typography.rowSubtitle)
-                            .foregroundStyle(.secondary)
-                    }
-                    Spacer(minLength: Spacing.s)
-                    Text("\(store.accounts.count) 个账号")
-                        .font(Typography.caption2)
-                        .foregroundStyle(.secondary)
-                    AppChevron()
-                }
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-        }
-    }
-
     // MARK: - 状态
 
     private var statusSection: some View {
@@ -96,7 +75,9 @@ struct CampusNetHomeView: View {
             HStack(spacing: Spacing.l) {
                 ZStack {
                     Circle()
-                        .fill(store.state == .online ? Color.appBrand.opacity(0.15) : Color.appTertiaryFill)
+                        .fill(store.state == .online
+                              ? Color.appSuccess.opacity(0.18)
+                              : Color(uiColor: .quaternarySystemFill))
                     Image(systemName: symbol)
                         .font(Typography.title3.weight(.semibold))
                         .foregroundStyle(stateColor)

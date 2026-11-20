@@ -1,34 +1,43 @@
 import SwiftUI
 
-/// 统一导航标题：大标题 + 副标题。
+/// 统一导航标题：大标题 + 副标题，随滚动折叠为 inline。
 ///
-/// 副标题走 iOS 26 的 `navigationSubtitle`；低版本自动省略，
-/// 不自己画一层 overlay —— 那会跟大标题折叠打架。
+/// iOS 26 直接用系统的 `.navigationSubtitle`（跟随滚动一起淡出）；
+/// 低版本没有这个 API，退回到标题下方的一行小字（不参与滚动）。
 struct AppNavigation: ViewModifier {
     var title: String
     var subtitle: String?
 
     func body(content: Content) -> some View {
+        #if compiler(>=6.2)
+        if #available(iOS 26.0, *), let subtitle {
+            content
+                .navigationTitle(title)
+                .navigationBarTitleDisplayMode(.large)
+                .navigationSubtitle(subtitle)
+        } else {
+            legacy(content)
+        }
+        #else
+        legacy(content)
+        #endif
+    }
+
+    @ViewBuilder
+    private func legacy(_ content: Content) -> some View {
         content
             .navigationTitle(title)
             .navigationBarTitleDisplayMode(.large)
-            .modifier(SubtitleIfAvailable(subtitle: subtitle))
-    }
-}
-
-private struct SubtitleIfAvailable: ViewModifier {
-    var subtitle: String?
-
-    func body(content: Content) -> some View {
-        #if compiler(>=6.2)
-        if #available(iOS 26.0, *), let subtitle {
-            content.navigationSubtitle(subtitle)
-        } else {
-            content
-        }
-        #else
-        content
-        #endif
+            .overlay(alignment: .topLeading) {
+                if let subtitle {
+                    Text(subtitle)
+                        .font(Typography.footnote)
+                        .foregroundStyle(.secondary)
+                        .padding(.horizontal, Spacing.page)
+                        .padding(.top, Spacing.xxl)
+                        .allowsHitTesting(false)
+                }
+            }
     }
 }
 
@@ -47,6 +56,24 @@ struct GlassToolbarButton: View {
 
     var body: some View {
         Button(action: action) {
+            Image(systemName: symbol)
+                .font(Typography.body)
+                .foregroundStyle(tint)
+                .frame(width: Spacing.rowMinHeight, height: Spacing.rowMinHeight)
+        }
+        .accessibilityLabel(label)
+    }
+}
+
+/// 工具栏里的导航按钮：和 `GlassToolbarButton` 一样大，但走 NavigationLink。
+struct GlassToolbarLink<Destination: Hashable>: View {
+    var symbol: String
+    var label: String
+    var tint: Color = .appBrand
+    var value: Destination
+
+    var body: some View {
+        NavigationLink(value: value) {
             Image(systemName: symbol)
                 .font(Typography.body)
                 .foregroundStyle(tint)
