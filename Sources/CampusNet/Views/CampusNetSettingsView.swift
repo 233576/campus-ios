@@ -146,7 +146,7 @@ struct CampusNetSettingsView: View {
                     .keyboardType(.URL)
                     .autocorrectionDisabled()
                     .textInputAutocapitalization(.never)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(Flat.textPrimary)
                     .onSubmit { applyPortal() }
             }
             .flatField()
@@ -208,7 +208,7 @@ struct CampusNetSettingsView: View {
                 TextField("留空自动获取（如 GiWiFi_lnsfHG）", text: $nasName)
                     .autocorrectionDisabled()
                     .textInputAutocapitalization(.never)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(Flat.textPrimary)
                     .onSubmit { applyNasName() }
             }
             .flatField()
