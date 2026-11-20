@@ -10,7 +10,9 @@ struct CampusNetHomeView: View {
 
     @State var showAccounts = false
     @State private var showingProfileEditor = false
-    @State private var showingPortalWeb = false
+    @State var showingPortalWeb = false
+    /// 底部认证栏是否可见。点过「立即认证」就先收起来。
+    @State private var isActionBarVisible = true
 
     var body: some View {
         AppList {
@@ -23,13 +25,26 @@ struct CampusNetHomeView: View {
             infoSection
         }
         .appNavigation(title: "GiWiFi 助手", subtitle: "校园网 · 一键认证")
+        .toolbarBackground(.automatic, for: .navigationBar)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 GlassToolbarLink(symbol: "gearshape", label: "校园网设置", value: CampusRoute.settings)
             }
         }
         .refreshable { await store.refreshState() }
-        .safeAreaInset(edge: .bottom, spacing: 0) { bottomBar }
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            if isActionBarVisible {
+                bottomBar
+                    .transition(.asymmetric(
+                        insertion: .opacity.combined(with: .offset(y: 26)),
+                        removal: .opacity.combined(with: .offset(y: 26))
+                    ))
+            }
+        }
+        .onAppear { showActionBar() }
+        .onChange(of: store.state) { _, state in
+            if state != .connecting { showActionBar() }
+        }
         .sheet(isPresented: $showAccounts) {
             AccountsView(isPicker: true).environmentObject(store)
         }
@@ -217,8 +232,27 @@ struct CampusNetHomeView: View {
 
     // MARK: - 底部主按钮
 
+
+    // MARK: - 底部遮罩显隐
+
+    /// 隐藏底部操作栏：向下淡出 26pt，接近临界阻尼，顺滑到位不弹跳。
+    private func hideActionBar() {
+        withAnimation(.spring(response: 0.5, dampingFraction: 0.86, blendDuration: 0.3)) {
+            isActionBarVisible = false
+        }
+    }
+
+    /// 恢复底部操作栏，动画与隐藏保持对称。
+    private func showActionBar() {
+        guard !isActionBarVisible else { return }
+        withAnimation(.spring(response: 0.5, dampingFraction: 0.86, blendDuration: 0.3)) {
+            isActionBarVisible = true
+        }
+    }
+
     private var bottomBar: some View {
         Button {
+            hideActionBar()
             Task { await store.login() }
         } label: {
             HStack(spacing: Spacing.s) {
@@ -238,41 +272,5 @@ struct CampusNetHomeView: View {
 
     // MARK: - 派生
 
-    private var portalURL: URL? {
-        let raw = store.settings.portalOverride.isEmpty
-            ? GiWifiProtocol.defaultPortal
-            : store.settings.portalOverride
-        return GiWifiClient.normalizedPortalURL(raw)
-    }
 
-    private func openPortal() {
-        store.clearError()
-        showingPortalWeb = true
-    }
-
-    private var buttonTitle: String {
-        switch store.state {
-        case .online: return "重新认证"
-        case .connecting: return "认证中…"
-        default: return "立即认证"
-        }
-    }
-
-    private var symbol: String {
-        switch store.state {
-        case .online: return "checkmark"
-        case .checking, .connecting: return "arrow.triangle.2.circlepath"
-        case .failed: return "exclamationmark"
-        case .offline, .idle: return "wifi.slash"
-        }
-    }
-
-    private var stateColor: Color {
-        switch store.state {
-        case .online: return .appBrand
-        case .checking, .connecting: return .appBrand
-        case .failed: return .appDanger
-        case .offline, .idle: return .secondary
-        }
-    }
 }

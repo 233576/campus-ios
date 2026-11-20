@@ -61,3 +61,48 @@ extension CampusNetHomeView {
 
 }
 
+extension CampusNetHomeView {
+    func openPortal() {
+        store.clearError()
+        showingPortalWeb = true
+    }
+}
+
+extension CampusNetHomeView {
+    /// 内置网页要打开的地址：手填优先，否则默认站点。
+    var portalURL: URL? {
+        let raw = store.settings.portalOverride.isEmpty
+            ? GiWifiProtocol.defaultPortal
+            : store.settings.portalOverride
+        return GiWifiClient.normalizedPortalURL(raw)
+    }
+
+    /// 状态卡的图标随连接状态切换。
+    var symbol: String {
+        switch store.state {
+        case .online: return "checkmark"
+        case .checking, .connecting: return "arrow.triangle.2.circlepath"
+        case .failed: return "exclamationmark"
+        case .offline, .idle: return "wifi.slash"
+        }
+    }
+}
+
+extension CampusNetHomeView {
+    var buttonTitle: String {
+        switch store.state {
+        case .online: return "重新认证"
+        case .connecting: return "认证中…"
+        default: return "立即认证"
+        }
+    }
+
+    var stateColor: Color {
+        switch store.state {
+        case .online: return .appBrand
+        case .checking, .connecting: return .appBrand
+        case .failed: return .appDanger
+        case .offline, .idle: return .secondary
+        }
+    }
+}

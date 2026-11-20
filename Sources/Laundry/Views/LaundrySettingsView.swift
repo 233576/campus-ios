@@ -157,7 +157,7 @@ struct LaundrySettingsView: View {
                 set: { store.setAutoRefresh($0) }
             )) {
                 VStack(alignment: .leading, spacing: Spacing.xxs) {
-                    Text("打开 App 等 2 秒自动查状态").font(Typography.rowTitle)
+                    Text("打开 App 立即查状态").font(Typography.rowTitle)
                     Text("关掉就只在你手动点的时候刷新")
                         .font(Typography.rowSubtitle)
                         .foregroundStyle(.secondary)

@@ -268,9 +268,8 @@ final class CampusNetStore: ObservableObject {
 
     // MARK: - 启动自动检测
 
-    /// 打开 App 后等 2 秒再静默检测一次状态（不触发认证）。
+    /// 打开 App 后立即静默检测一次状态（不触发认证）。
     func autoDetectOnLaunch() async {
-        try? await Task.sleep(nanoseconds: 2_000_000_000)
         guard !Task.isCancelled else { return }
         guard !settings.username.isEmpty else {
             state = .idle

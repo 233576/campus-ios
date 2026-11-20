@@ -14,8 +14,8 @@ settings:
     CODE_SIGNING_REQUIRED: NO
     CODE_SIGN_IDENTITY: ""
     DEVELOPMENT_TEAM: ""
-    MARKETING_VERSION: "5.1.0"
-    CURRENT_PROJECT_VERSION: "16"
+    MARKETING_VERSION: "5.1.2"
+    CURRENT_PROJECT_VERSION: "18"
 
 targets:
   Campus:
@@ -45,8 +45,8 @@ targets:
         NSCameraUsageDescription: 需要相机扫描洗衣机上的二维码，识别出是哪一台机器。
         NSPhotoLibraryAddUsageDescription: 保存支付二维码到相册，方便用支付宝或微信扫一扫从相册选图付款。
         NSLocalNetworkUsageDescription: 需要访问校园网网关完成 GiWiFi 认证，并读取当前 Wi-Fi 的局域网地址。
-        CFBundleShortVersionString: "5.1.0"
-        CFBundleVersion: "16"
+        CFBundleShortVersionString: "5.1.2"
+        CFBundleVersion: "18"
         UILaunchScreen: {}
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait

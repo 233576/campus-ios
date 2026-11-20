@@ -6,7 +6,7 @@ import UIKit
 /// 结构走 AppList（insetGrouped），不再用「大卡片套小卡片」。
 /// 唯一保留的卡片是顶部洗涤进度 —— 它是全局状态，不属于任何分组。
 struct LaundryView: View {
-    @EnvironmentObject private var store: LaundryStore
+    @EnvironmentObject var store: LaundryStore
 
     @State private var code = ""
     @State private var showingLogin = false
@@ -14,6 +14,8 @@ struct LaundryView: View {
     @State private var showingPay = false
     @State private var showingRecharge = false
     @State private var confirming: PGSku?
+    /// 底部查询栏是否可见。点过按钮就先收起来，让列表能滚到底。
+    @State private var isActionBarVisible = true
 
     var body: some View {
         VStack(spacing: 0) {
@@ -41,6 +43,7 @@ struct LaundryView: View {
             }
         }
         .appNavigation(title: "胖乖洗衣", subtitle: "洗衣机 · 扫码即用")
+        .toolbarBackground(.automatic, for: .navigationBar)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 GlassToolbarButton(symbol: "arrow.clockwise", label: "刷新") {
@@ -49,7 +52,19 @@ struct LaundryView: View {
                 .disabled(store.isBusy)
             }
         }
-        .safeAreaInset(edge: .bottom, spacing: 0) { bottomBar }
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            if isActionBarVisible {
+                bottomBar
+                    .transition(.asymmetric(
+                        insertion: .opacity.combined(with: .offset(y: 26)),
+                        removal: .opacity.combined(with: .offset(y: 26))
+                    ))
+            }
+        }
+        .onAppear { showActionBar() }
+        .onChange(of: store.isBusy) { _, busy in
+            if !busy { showActionBar() }
+        }
         .sheet(isPresented: $showingLogin) {
             LoginSheet {
                 let target = code.trimmingCharacters(in: .whitespaces)
@@ -58,7 +73,7 @@ struct LaundryView: View {
             }
             .environmentObject(store)
         }
-        .onChange(of: store.needsLogin) { wanted in
+        .onChange(of: store.needsLogin) { _, wanted in
             guard wanted else { return }
             store.needsLogin = false
             showingScan = false
@@ -238,25 +253,23 @@ struct LaundryView: View {
         }
     }
 
-    private var emptySection: some View {
-        Section {
-            AppEmptyState(
-                title: "还没有选洗衣机",
-                message: "扫码或输入机器码启动洗衣机，也可从「最近用过」中选择。",
-                symbol: "washer"
-            )
-            .listRowInsets(EdgeInsets())
-            .listRowBackground(Color.clear)
+
+
+    // MARK: - 底部遮罩显隐
+
+    /// 隐藏底部操作栏：向下淡出 26pt，接近临界阻尼，顺滑到位不弹跳。
+    private func hideActionBar() {
+        withAnimation(.spring(response: 0.5, dampingFraction: 0.86, blendDuration: 0.3)) {
+            isActionBarVisible = false
         }
     }
 
-    private var progressOrder: PGOrder? {
-        if let running = store.runningOrder { return running }
-        if let paid = store.latestPaidOrder, let end = paid.endsAt,
-           end.timeIntervalSince(store.now) > -300 {
-            return paid
+    /// 恢复底部操作栏，动画与隐藏保持对称。
+    private func showActionBar() {
+        guard !isActionBarVisible else { return }
+        withAnimation(.spring(response: 0.5, dampingFraction: 0.86, blendDuration: 0.3)) {
+            isActionBarVisible = true
         }
-        return nil
     }
 
     private var bottomBar: some View {
@@ -264,8 +277,10 @@ struct LaundryView: View {
             Button {
                 if store.loggedIn {
                     let target = code
+                    hideActionBar()
                     Task { _ = await store.resolve(code: target) }
                 } else {
+                    hideActionBar()
                     store.needsLogin = true
                 }
             } label: {
