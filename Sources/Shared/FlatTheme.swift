@@ -31,6 +31,7 @@ enum Flat {
 
     static let cardRadius: CGFloat = Radius.card
     static let fieldRadius: CGFloat = Radius.control
+    static let controlRadius: CGFloat = Radius.control
 
     static var specular: LinearGradient {
         LinearGradient(colors: [Color.white.opacity(0.85), Color.white.opacity(0.10)],
