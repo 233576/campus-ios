@@ -23,7 +23,7 @@ struct CampusNetLogView: View {
                                 HStack(alignment: .top, spacing: 8) {
                                     Text(line.stamp)
                                         .font(.system(.caption2, design: .monospaced))
-                                        .foregroundStyle(.white.opacity(0.35))
+                                        .foregroundStyle(Flat.textTertiary)
                                     Text(line.text)
                                         .font(.system(.caption, design: .monospaced))
                                         .foregroundStyle(Flat.textSecondary)
