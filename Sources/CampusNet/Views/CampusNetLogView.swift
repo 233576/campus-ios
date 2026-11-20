@@ -38,14 +38,11 @@ struct CampusNetLogView: View {
                     }
                     .padding(.horizontal, 16)
                     .padding(.top, 8)
-                    .padding(.bottom, 78)
+                    .padding(.bottom, 16)
                 }
                 .scrollIndicators(.hidden)
             }
-            .navigationTitle("运行日志")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbarBackground(Flat.background, for: .navigationBar)
-            .toolbarBackground(.visible, for: .navigationBar)
+            .toolbar(.hidden, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     HStack(spacing: 10) {
