@@ -12,35 +12,47 @@ extension View {
     @ViewBuilder
     func liquidGlassSurface(radius: CGFloat,
                             tint: Color? = nil,
-                            interactive: Bool = false) -> some View {
+                            interactive: Bool = false,
+                            fill: Double = GlassFill.standard) -> some View {
+        let shape = RoundedRectangle(cornerRadius: radius, style: .continuous)
         #if compiler(>=6.2)
         if #available(iOS 26.0, *) {
             let glass: Glass = {
                 var base: Glass = .regular
-                if let tint { base = base.tint(tint.opacity(0.35)) }
+                if let tint { base = base.tint(tint.opacity(0.30)) }
                 return interactive ? base.interactive() : base
             }()
-            self.glassEffect(
-                glass,
-                in: RoundedRectangle(cornerRadius: radius, style: .continuous)
-            )
+            self
+                .background {
+                    if fill > 0 {
+                        shape.fill(Flat.surface.opacity(fill))
+                    }
+                }
+                .compositingGroup()
+                .glassEffect(glass, in: shape)
         } else {
-            legacyGlass(radius: radius, tint: tint)
+            legacyGlass(radius: radius, tint: tint, fill: fill)
         }
         #else
-        legacyGlass(radius: radius, tint: tint)
+        legacyGlass(radius: radius, tint: tint, fill: fill)
         #endif
     }
 
-    /// 老系统上的玻璃：系统材质负责模糊，极薄的一层白负责"磨砂"，细边负责厚度。
-    func legacyGlass(radius: CGFloat, tint: Color?) -> some View {
-        modifier(LegacyGlass(radius: radius, tint: tint))
+    /// 老系统上的玻璃：系统材质负责模糊，半透明底负责"85% 的实"，细边负责厚度。
+    func legacyGlass(radius: CGFloat, tint: Color?, fill: Double = GlassFill.standard) -> some View {
+        modifier(LegacyGlass(radius: radius, tint: tint, fill: fill))
     }
+}
+
+/// 玻璃底色的不透明度 —— 用户要求整体 85%，一处改全局跟着变。
+enum GlassFill {
+    static let standard: Double = 0.85
 }
 
 struct LegacyGlass: ViewModifier {
     var radius: CGFloat
     var tint: Color?
+    var fill: Double = GlassFill.standard
 
     func body(content: Content) -> some View {
         let shape = RoundedRectangle(cornerRadius: radius, style: .continuous)
@@ -48,7 +60,7 @@ struct LegacyGlass: ViewModifier {
             .background {
                 ZStack {
                     shape.fill(.ultraThinMaterial)
-                    shape.fill(Flat.surface)
+                    shape.fill(Flat.surface.opacity(fill))
                     if let tint { shape.fill(tint.opacity(0.10)) }
                 }
             }
