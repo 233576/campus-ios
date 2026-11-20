@@ -25,10 +25,11 @@ enum CampusNetTab: String, CaseIterable, Identifiable {
     }
 }
 
-/// 校园网模块外壳。底部导航归 `CampusShell`，模块内用顶部分段切换。
+/// 校园网模块外壳。底部导航归 `CampusShell`，模块内用顶部分段切换（均分宽度）。
 struct CampusNetShell: View {
     @EnvironmentObject private var store: CampusNetStore
     @State private var tab: CampusNetTab = .home
+    @Namespace private var segment
 
     var body: some View {
         VStack(spacing: 0) {
@@ -53,30 +54,54 @@ struct CampusNetShell: View {
     }
 
     private var segmentBar: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
-                ForEach(CampusNetTab.allCases) { item in
-                    Button {
-                        withAnimation(.spring(response: 0.32, dampingFraction: 1.0)) {
-                            tab = item
-                        }
-                    } label: {
-                        HStack(spacing: 6) {
-                            Image(systemName: item.symbol)
-                                .font(.system(size: 12, weight: .semibold))
-                            Text(item.title)
-                                .font(.system(size: 13, weight: .medium))
-                        }
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 8)
-                        .foregroundStyle(tab == item ? Flat.accent : Flat.textSecondary)
-                        .flatPill(selected: tab == item, tint: Flat.accent)
+        HStack(spacing: 4) {
+            ForEach(CampusNetTab.allCases) { item in
+                let selected = tab == item
+                Button {
+                    guard tab != item else { return }
+                    withAnimation(.spring(response: 0.28, dampingFraction: 0.92)) {
+                        tab = item
                     }
-                    .buttonStyle(.plain)
+                } label: {
+                    HStack(spacing: 5) {
+                        Image(systemName: item.symbol)
+                            .font(.system(size: 11, weight: .semibold))
+                        Text(item.title)
+                            .font(.system(size: 12.5, weight: .semibold))
+                    }
+                    .foregroundStyle(selected ? Flat.accent : Flat.textSecondary)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 8)
+                    .background {
+                        if selected {
+                            Capsule(style: .continuous)
+                                .fill(Flat.accent.opacity(0.15))
+                                .overlay {
+                                    Capsule(style: .continuous)
+                                        .strokeBorder(Flat.accent.opacity(0.45), lineWidth: 1)
+                                }
+                                .matchedGeometryEffect(id: "campusNetSegment", in: segment)
+                        }
+                    }
+                    .contentShape(Capsule(style: .continuous))
                 }
+                .buttonStyle(PressScaleStyle(scale: 0.95))
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 10)
         }
+        .padding(4)
+        .background {
+            ZStack {
+                Capsule(style: .continuous).fill(.ultraThinMaterial)
+                Capsule(style: .continuous).fill(Flat.surfaceHigh)
+            }
+        }
+        .overlay {
+            Capsule(style: .continuous).strokeBorder(Flat.stroke, lineWidth: 1)
+        }
+        .clipShape(Capsule(style: .continuous))
+        .shadow(color: Flat.glassShadow.opacity(0.8), radius: 10, x: 0, y: 5)
+        .padding(.horizontal, 14)
+        .padding(.top, 4)
+        .padding(.bottom, 8)
     }
 }
