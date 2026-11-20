@@ -40,7 +40,8 @@ struct CampusShell: View {
     @State private var tab: AppTab = .laundry
     @State private var laundryPath = NavigationPath()
     @State private var campusPath = NavigationPath()
-    @State private var didAutoDetect = false
+    @State private var didAutoDetectLaundry = false
+    @State private var didAutoDetectCampus = false
 
     var body: some View {
         TabView(selection: $tab) {
@@ -49,7 +50,7 @@ struct CampusShell: View {
                     .navigationDestination(for: LaundryRoute.self) { route in
                         LaundryDestination(route: route)
                     }
-                    .task { await autoDetectOnce() }
+                    .task { await autoDetectLaundryOnce() }
             }
             .tag(AppTab.laundry)
             .tabItem { Label(AppTab.laundry.title, systemImage: AppTab.laundry.symbol) }
@@ -59,6 +60,7 @@ struct CampusShell: View {
                     .navigationDestination(for: CampusRoute.self) { route in
                         CampusDestination(route: route)
                     }
+                    .task { await autoDetectCampusOnce() }
             }
             .tag(AppTab.campusNet)
             .tabItem { Label(AppTab.campusNet.title, systemImage: AppTab.campusNet.symbol) }
@@ -66,11 +68,20 @@ struct CampusShell: View {
         .tint(.appBrand)
     }
 
-    /// 第一次进入洗衣 Tab 时自动检测一次连接状态；之后不再重复打扰。
+    /// 每个模块各自只在第一次进入时自动检测一次。
+    ///
+    /// 延迟秒数由用户在设置里选（0 = 立即），两个模块互不影响。
     @MainActor
-    private func autoDetectOnce() async {
-        guard !didAutoDetect else { return }
-        didAutoDetect = true
-        await laundry.autoDetectOnLaunch()
+    private func autoDetectLaundryOnce() async {
+        guard !didAutoDetectLaundry else { return }
+        didAutoDetectLaundry = true
+        await laundry.autoDetectOnLaunch(delay: LaunchRefresh.delay(for: "laundry"))
+    }
+
+    @MainActor
+    private func autoDetectCampusOnce() async {
+        guard !didAutoDetectCampus else { return }
+        didAutoDetectCampus = true
+        await campusNet.autoDetectOnLaunch(delay: LaunchRefresh.delay(for: "campus"))
     }
 }

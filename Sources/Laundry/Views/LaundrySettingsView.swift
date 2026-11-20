@@ -8,6 +8,8 @@ struct LaundrySettingsView: View {
     @EnvironmentObject private var store: LaundryStore
 
     @AppStorage(AppearanceMode.storageKey) private var appearanceRaw = AppearanceMode.defaultValue
+    @AppStorage("laundry" + LaunchRefresh.immediatelySuffix) private var launchImmediately = false
+    @AppStorage("laundry" + LaunchRefresh.delaySuffix) private var launchDelay = LaunchRefresh.defaultDelay
 
     @State private var showingLogin = false
     @State private var showingRecharge = false
@@ -23,6 +25,7 @@ struct LaundrySettingsView: View {
             aboutSection
         }
         .appNavigation(title: "洗衣设置")
+        .toolbar(.hidden, for: .tabBar)
         .sheet(isPresented: $showingLogin) {
             LoginSheet().environmentObject(store)
         }
@@ -156,15 +159,28 @@ struct LaundrySettingsView: View {
                 get: { store.settings.autoRefresh },
                 set: { store.setAutoRefresh($0) }
             )) {
-                VStack(alignment: .leading, spacing: Spacing.xxs) {
-                    Text("打开 App 等 2 秒自动查状态").font(Typography.rowTitle)
-                    Text("关掉就只在你手动点的时候刷新")
-                        .font(Typography.rowSubtitle)
+                Text("启动时自动检测").font(Typography.rowTitle)
+            }
+
+            Toggle(isOn: $launchImmediately) {
+                Text("打开 App 后立即刷新").font(Typography.rowTitle)
+            }
+            .disabled(!store.settings.autoRefresh)
+
+            Stepper(value: $launchDelay, in: LaunchRefresh.delayRange, step: 1) {
+                LabeledContent("延迟刷新") {
+                    Text("\(Int(launchDelay)) 秒")
+                        .font(Typography.monoValue)
                         .foregroundStyle(.secondary)
                 }
             }
+            .disabled(!store.settings.autoRefresh || launchImmediately)
+            .opacity(store.settings.autoRefresh && !launchImmediately ? 1 : 0.5)
         } header: {
             Text("启动自动检测")
+        } footer: {
+            Text("开启后立即查询洗衣机状态；关闭则等待设定的秒数后再查询，可避免启动时网络未就绪导致查询失败。")
+                .font(Typography.caption2)
         }
     }
 
@@ -198,6 +214,7 @@ struct LaundrySettingsView: View {
     private var aboutSection: some View {
         Section {
             infoRow("版本", Self.appVersion)
+            #if DEBUG
             Button {
                 let token = store.loginToken()
                 guard !token.isEmpty else {
@@ -219,10 +236,11 @@ struct LaundrySettingsView: View {
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
+            #endif
         } header: {
             Text("关于")
         } footer: {
-            Text("协议参考 Cumpus / wash / baotuquan-light 三个开源项目，只复刻了洗衣机（categoryCode=wash）这一条链路：扫码 → 选套餐 → 下单 → 扫码支付 → 查订单。")
+            Text("只做洗衣机的扫码、选套餐、下单、支付与订单查询。")
                 .font(Typography.caption2)
         }
     }

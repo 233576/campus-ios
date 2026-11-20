@@ -347,10 +347,15 @@ final class LaundryStore: ObservableObject {
         await refreshOrders()
     }
 
-    /// 启动后等 2 秒再自动刷新，避免刚开 App 就并发打接口。
-    func autoDetectOnLaunch() async {
+    /// 启动后按用户设定延迟再自动刷新（0 秒 = 立即）。
+    ///
+    /// 只控制「什么时候触发」，查询逻辑本身没动。
+    func autoDetectOnLaunch(delay: Double = 2) async {
         guard loggedIn, settings.autoRefresh else { return }
-        try? await Task.sleep(nanoseconds: 2_000_000_000)
+        if delay > 0 {
+            try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+            guard !Task.isCancelled else { return }
+        }
         busyText = "自动检测…"
         await refreshAll()
         busyText = ""
