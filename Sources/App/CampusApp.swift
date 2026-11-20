@@ -23,7 +23,7 @@ struct CampusApp: App {
                     laundry.restore()
                     campusNet.restore()
                 }
-                .onChange(of: scenePhase) { phase in
+                .onChange(of: scenePhase) { _, phase in
                     switch phase {
                     case .background:
                         campusNet.stopAuto()

@@ -62,7 +62,7 @@ struct LaundryView: View {
             }
         }
         .onAppear { showActionBar() }
-        .onChange(of: store.isBusy) { busy in
+        .onChange(of: store.isBusy) { _, busy in
             if !busy { showActionBar() }
         }
         .sheet(isPresented: $showingLogin) {
@@ -73,7 +73,7 @@ struct LaundryView: View {
             }
             .environmentObject(store)
         }
-        .onChange(of: store.needsLogin) { wanted in
+        .onChange(of: store.needsLogin) { _, wanted in
             guard wanted else { return }
             store.needsLogin = false
             showingScan = false

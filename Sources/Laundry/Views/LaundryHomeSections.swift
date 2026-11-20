@@ -171,3 +171,18 @@ struct LaundryPendingSection: View {
         }
     }
 }
+
+extension LaundryView {
+    /// 还没选机器时的空态。
+    var emptySection: some View {
+        Section {
+            AppEmptyState(
+                title: "还没有选洗衣机",
+                message: "扫码或输入机器码启动洗衣机，也可从「最近用过」中选择。",
+                symbol: "washer"
+            )
+            .listRowInsets(EdgeInsets())
+            .listRowBackground(Color.clear)
+        }
+    }
+}

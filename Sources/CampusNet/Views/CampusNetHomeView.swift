@@ -42,7 +42,7 @@ struct CampusNetHomeView: View {
             }
         }
         .onAppear { showActionBar() }
-        .onChange(of: store.state) { state in
+        .onChange(of: store.state) { _, state in
             if state != .connecting { showActionBar() }
         }
         .sheet(isPresented: $showAccounts) {
