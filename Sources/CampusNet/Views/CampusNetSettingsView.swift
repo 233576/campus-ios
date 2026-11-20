@@ -6,13 +6,17 @@ import SwiftUI
 struct CampusNetSettingsView: View {
     @EnvironmentObject private var store: CampusNetStore
 
+    @AppStorage(AppearanceMode.storageKey) private var appearanceRaw = AppearanceMode.defaultValue
+
     @State private var portal = GiWifiProtocol.defaultPortal
     @State private var nasName = ""
     @State private var confirmingReset = false
+    @State private var showingAccounts = false
 
     var body: some View {
         AppList {
             accountsSection
+            appearanceSection
             deviceSection
             portalSection
             nasSection
@@ -22,6 +26,9 @@ struct CampusNetSettingsView: View {
             aboutSection
         }
         .appNavigation(title: "校园网设置")
+        .sheet(isPresented: $showingAccounts) {
+            AccountsView().environmentObject(store)
+        }
         .onAppear {
             portal = store.settings.portalOverride
             nasName = store.settings.nasName
@@ -34,12 +41,40 @@ struct CampusNetSettingsView: View {
         }
     }
 
+    // MARK: - 外观
+
+    private var appearanceSection: some View {
+        Section {
+            Picker("外观", selection: appearanceBinding) {
+                ForEach(AppearanceMode.allCases) { mode in
+                    Text(mode.title).tag(mode.rawValue)
+                }
+            }
+            .pickerStyle(.segmented)
+            .listRowInsets(EdgeInsets(top: Spacing.s, leading: Spacing.page,
+                                      bottom: Spacing.s, trailing: Spacing.page))
+        } header: {
+            Text("外观")
+        } footer: {
+            Text("「跟随系统」随时随系统切换；选浅色或深色后整个 App 立即生效。")
+        }
+    }
+
+    private var appearanceBinding: Binding<String> {
+        Binding(
+            get: { appearanceRaw },
+            set: { value in
+                withAnimation(.easeInOut(duration: 0.35)) { appearanceRaw = value }
+            }
+        )
+    }
+
     // MARK: - 账号
 
     private var accountsSection: some View {
         Section {
-            NavigationLink {
-                AccountsView().environmentObject(store)
+            Button {
+                showingAccounts = true
             } label: {
                 HStack(spacing: Spacing.m) {
                     AppIconCircle(symbol: "person.2.fill", tint: .appBrand)
@@ -53,7 +88,9 @@ struct CampusNetSettingsView: View {
                     }
                 }
                 .padding(.vertical, Spacing.xxs)
+                .contentShape(Rectangle())
             }
+            .buttonStyle(.plain)
         } header: {
             Text("账号")
         }

@@ -7,6 +7,8 @@ import UIKit
 struct LaundrySettingsView: View {
     @EnvironmentObject private var store: LaundryStore
 
+    @AppStorage(AppearanceMode.storageKey) private var appearanceRaw = AppearanceMode.defaultValue
+
     @State private var showingLogin = false
     @State private var showingRecharge = false
     @State private var copiedToken: String?
@@ -14,6 +16,7 @@ struct LaundrySettingsView: View {
     var body: some View {
         AppList {
             accountSection
+            appearanceSection
             paySection
             refreshSection
             endpointSection
@@ -26,6 +29,34 @@ struct LaundrySettingsView: View {
         .sheet(isPresented: $showingRecharge) {
             RechargeView().environmentObject(store)
         }
+    }
+
+    // MARK: - 外观
+
+    private var appearanceSection: some View {
+        Section {
+            Picker("外观", selection: appearanceBinding) {
+                ForEach(AppearanceMode.allCases) { mode in
+                    Text(mode.title).tag(mode.rawValue)
+                }
+            }
+            .pickerStyle(.segmented)
+            .listRowInsets(EdgeInsets(top: Spacing.s, leading: Spacing.page,
+                                      bottom: Spacing.s, trailing: Spacing.page))
+        } header: {
+            Text("外观")
+        } footer: {
+            Text("「跟随系统」随时随系统切换；选浅色或深色后整个 App 立即生效。")
+        }
+    }
+
+    private var appearanceBinding: Binding<String> {
+        Binding(
+            get: { appearanceRaw },
+            set: { value in
+                withAnimation(.easeInOut(duration: 0.35)) { appearanceRaw = value }
+            }
+        )
     }
 
     // MARK: - 账号
