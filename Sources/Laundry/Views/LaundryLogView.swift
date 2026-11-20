@@ -74,7 +74,7 @@ struct LaundryLogView: View {
                 }
             }
             .padding(.horizontal, 16)
-            .padding(.bottom, 104)
+            .padding(.bottom, 88)
         }
     }
 }
