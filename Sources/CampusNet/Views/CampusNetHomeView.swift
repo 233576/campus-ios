@@ -23,7 +23,7 @@ struct CampusNetHomeView: View {
                     }
                     .padding(.horizontal, 16)
                     .padding(.top, 6)
-                    .padding(.bottom, 88)
+                    .padding(.bottom, 78)
                 }
                 .scrollIndicators(.hidden)
                 .refreshable { await store.refreshState() }
