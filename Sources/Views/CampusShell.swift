@@ -36,7 +36,7 @@ struct CampusShell: View {
     @State private var visited: Set<CampusSection> = [.laundry]
     @Namespace private var indicator
 
-    private let barHeight: CGFloat = 40
+    private let barHeight: CGFloat = 46
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -79,18 +79,18 @@ struct CampusShell: View {
                 } label: {
                     VStack(spacing: 2) {
                         Image(systemName: item.symbol)
-                            .font(.system(size: 15, weight: .semibold))
-                            .frame(height: 17)
+                            .font(.system(size: 17, weight: .semibold))
+                            .frame(height: 19)
                         Text(item.title)
-                            .font(.system(size: 8.5, weight: .medium))
+                            .font(.system(size: 9, weight: .medium))
                     }
                     .foregroundStyle(selected ? Flat.accent : Flat.textSecondary)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 4)
                     .background {
                         if selected {
-                            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                .fill(Flat.accent.opacity(0.12))
+                            RoundedRectangle(cornerRadius: 13, style: .continuous)
+                                .fill(Flat.accent.opacity(0.14))
                                 .matchedGeometryEffect(id: "sectionIndicator", in: indicator)
                         }
                     }
@@ -102,7 +102,7 @@ struct CampusShell: View {
         .padding(.horizontal, 4)
         .frame(height: barHeight)
         .liquidGlassSurface(radius: barHeight / 2, interactive: true)
-        .padding(.horizontal, 68)
+        .padding(.horizontal, 24)
         .padding(.bottom, 6)
     }
 }
