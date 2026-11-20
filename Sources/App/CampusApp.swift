@@ -8,7 +8,7 @@ struct CampusApp: App {
 
     var body: some Scene {
         WindowGroup {
-            CampusShell()
+            StoreShell()
                 .environmentObject(laundry)
                 .environmentObject(campusNet)
                 .onAppear {
