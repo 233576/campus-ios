@@ -13,6 +13,29 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Select newest Xcode (prefer 26+ for glassEffect)
+        run: |
+          echo "--- installed ---"
+          ls -d /Applications/Xcode*.app 2>/dev/null || true
+          BEST=""
+          BEST_VER=0
+          for APP in /Applications/Xcode*.app; do
+            [ -d "$APP" ] || continue
+            VER=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$APP/Contents/Info.plist" 2>/dev/null | cut -d. -f1)
+            case "$VER" in ''|*[!0-9]*) continue ;; esac
+            echo "$APP -> major $VER"
+            if [ "$VER" -gt "$BEST_VER" ]; then BEST_VER=$VER; BEST="$APP"; fi
+          done
+          if [ -n "$BEST" ] && [ "$BEST_VER" -ge 26 ]; then
+            echo "==> selecting $BEST (iOS 26 SDK, glassEffect available)"
+            sudo xcode-select -s "$BEST/Contents/Developer"
+          elif [ -n "$BEST" ]; then
+            echo "==> selecting newest available $BEST"
+            sudo xcode-select -s "$BEST/Contents/Developer"
+          fi
+          xcodebuild -version
+          xcrun --sdk iphoneos --show-sdk-version
+
       - name: Show toolchain
         run: |
           xcodebuild -version
