@@ -36,7 +36,7 @@ struct CampusShell: View {
     @State private var visited: Set<CampusSection> = [.laundry]
     @Namespace private var indicator
 
-    private let barHeight: CGFloat = 46
+    private let barHeight: CGFloat = 52
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -71,39 +71,59 @@ struct CampusShell: View {
     }
 
     private var tabBar: some View {
-        HStack(spacing: 2) {
-            ForEach(CampusSection.allCases) { item in
-                let selected = section == item
-                Button {
-                    select(item)
-                } label: {
-                    VStack(spacing: 2) {
-                        Image(systemName: item.symbol)
-                            .font(.system(size: 17, weight: .semibold))
-                            .frame(height: 19)
-                        Text(item.title)
-                            .font(.system(size: 9, weight: .medium))
-                    }
-                    .foregroundStyle(selected ? Flat.accent : Flat.textSecondary)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 4)
-                    .background {
-                        if selected {
-                            RoundedRectangle(cornerRadius: 13, style: .continuous)
-                                .fill(Flat.accent.opacity(0.14))
-                                .matchedGeometryEffect(id: "sectionIndicator", in: indicator)
-                        }
-                    }
-                    .contentShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        GlassGroup(spacing: 20) {
+            HStack(spacing: 2) {
+                ForEach(CampusSection.allCases) { item in
+                    tabButton(item)
                 }
-                .buttonStyle(CampusTabButtonStyle())
             }
+            .padding(5)
+            .frame(height: barHeight)
+            .liquidGlassSurface(radius: barHeight / 2)
+            .overlay {
+                Capsule(style: .continuous)
+                    .strokeBorder(GlassPalette.edge.opacity(0.55), lineWidth: 0.8)
+            }
+            .shadow(color: GlassPalette.shadow, radius: 22, x: 0, y: 12)
         }
-        .padding(.horizontal, 4)
-        .frame(height: barHeight)
-        .liquidGlassSurface(radius: barHeight / 2, interactive: true)
-        .padding(.horizontal, 24)
-        .padding(.bottom, 6)
+        .padding(.horizontal, 22)
+        .padding(.bottom, 8)
+    }
+
+    private func tabButton(_ item: CampusSection) -> some View {
+        let selected = section == item
+        return Button {
+            select(item)
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: item.symbol)
+                    .font(.system(size: 17, weight: .semibold))
+                Text(item.title)
+                    .font(.system(size: 14, weight: .semibold))
+            }
+            .foregroundStyle(selected ? Color.white : GlassPalette.textSecondary)
+            .frame(maxWidth: .infinity)
+            .frame(height: barHeight - 10)
+            .background {
+                if selected {
+                    let shape = Capsule(style: .continuous)
+                    ZStack {
+                        shape.fill(
+                            LinearGradient(colors: [GlassPalette.accent, GlassPalette.accent.opacity(0.82)],
+                                           startPoint: .top, endPoint: .bottom)
+                        )
+                        shape.fill(
+                            LinearGradient(colors: [Color.white.opacity(0.35), Color.clear],
+                                           startPoint: .top, endPoint: .center)
+                        )
+                    }
+                    .matchedGeometryEffect(id: "sectionIndicator", in: indicator)
+                    .shadow(color: GlassPalette.accent.opacity(0.35), radius: 10, y: 4)
+                }
+            }
+            .contentShape(Capsule(style: .continuous))
+        }
+        .buttonStyle(CampusTabButtonStyle())
     }
 }
 
