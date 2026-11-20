@@ -26,7 +26,7 @@ struct CampusNetSettingsView: View {
                     }
                     .padding(.horizontal, 16)
                     .padding(.top, 6)
-                    .padding(.bottom, 96)
+                    .padding(.bottom, 88)
                 }
                 .scrollIndicators(.hidden)
             }
