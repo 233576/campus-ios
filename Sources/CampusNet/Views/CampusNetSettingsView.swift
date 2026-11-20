@@ -1,43 +1,47 @@
 import SwiftUI
 
-/// 校园网设置：账号、上报设备、Portal、网关名、协议参数、保持在线、自定义机型、关于。
+/// 校园网设置：只放常用项 —— 账号、外观、自动守护、连接信息、关于。
 ///
-/// 全部走 AppList Section，一个 Section 一层；不再有「大卡片包小卡片」。
+/// 技术参数（Portal / 网关名 / 协议 / 上报设备 / 换绑策略）全部收进「高级设置」二级页，
+/// 主页一屏半内能看完。上报设备只在高级设置里出现一次，不再和主页重复。
 struct CampusNetSettingsView: View {
     @EnvironmentObject private var store: CampusNetStore
 
     @AppStorage(AppearanceMode.storageKey) private var appearanceRaw = AppearanceMode.defaultValue
+    @AppStorage("campus" + LaunchRefresh.immediatelySuffix) private var launchImmediately = false
+    @AppStorage("campus" + LaunchRefresh.delaySuffix) private var launchDelay = LaunchRefresh.defaultDelay
 
-    @State private var portal = GiWifiProtocol.defaultPortal
-    @State private var nasName = ""
-    @State private var confirmingReset = false
     @State private var showingAccounts = false
 
     var body: some View {
         AppList {
             accountsSection
             appearanceSection
-            deviceSection
-            portalSection
-            nasSection
-            protocolSection
-            keepOnlineSection
-            CampusNetProfileSection()
+            guardSection
+            advancedSection
+            infoSection
             aboutSection
         }
         .appNavigation(title: "校园网设置")
+        .toolbar(.hidden, for: .tabBar)
         .sheet(isPresented: $showingAccounts) {
             AccountsView().environmentObject(store)
         }
-        .onAppear {
-            portal = store.settings.portalOverride
-            nasName = store.settings.nasName
-        }
-        .alert("重新生成设备标识？", isPresented: $confirmingReset) {
-            Button("取消", role: .cancel) {}
-            Button("生成", role: .destructive) { store.resetAppUuid() }
-        } message: {
-            Text("下次认证会以新设备身份登录，可能需要重新换绑。")
+    }
+
+    // MARK: - 账号
+
+    private var accountsSection: some View {
+        Section {
+            ActionRow(symbol: "person.2.fill",
+                      title: "账号管理",
+                      detail: store.accounts.isEmpty
+                          ? "添加校园网账号，支持多个账号切换登录"
+                          : "\(store.accounts.count) 个账号 · 当前 \(store.currentAccountName)",
+                      trailingSymbol: "person.badge.plus",
+                      action: { showingAccounts = true })
+        } header: {
+            Text("账号")
         }
     }
 
@@ -69,176 +73,23 @@ struct CampusNetSettingsView: View {
         )
     }
 
-    // MARK: - 账号
+    // MARK: - 自动守护
 
-    private var accountsSection: some View {
+    private var guardSection: some View {
         Section {
-            Button {
-                showingAccounts = true
-            } label: {
-                HStack(spacing: Spacing.m) {
-                    AppIconCircle(symbol: "person.2.fill", tint: .appBrand)
-                    VStack(alignment: .leading, spacing: Spacing.xxs) {
-                        Text("账号管理").font(Typography.rowTitle)
-                        Text(store.accounts.isEmpty
-                             ? "添加校园网账号，支持多个账号切换登录"
-                             : "\(store.accounts.count) 个账号 · 当前 \(store.currentAccountName)")
-                            .font(Typography.rowSubtitle)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-                .padding(.vertical, Spacing.xxs)
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-        } header: {
-            Text("账号")
-        }
-    }
-
-    // MARK: - 上报设备
-
-    private var deviceSection: some View {
-        Section {
-            Picker("上报设备", selection: Binding(
-                get: { store.currentProfile.kind },
-                set: { store.selectKind($0) }
+            Toggle(isOn: Binding(
+                get: { store.settings.autoReconnect },
+                set: { store.setAutoReconnect($0) }
             )) {
-                ForEach(DeviceKind.allCases) { kind in
-                    Text(kind.title).tag(kind)
-                }
-            }
-            .pickerStyle(.segmented)
-
-            LabeledContent("上报值") {
-                Text("\(store.currentProfile.btype) · \(store.currentProfile.staType)")
-                    .font(Typography.mono)
-                    .foregroundStyle(.secondary)
-            }
-            LabeledContent("机型串") {
-                Text(store.currentProfile.staModel)
-                    .font(Typography.mono)
-                    .foregroundStyle(.secondary)
-            }
-        } header: {
-            Text("上报设备")
-        } footer: {
-            Text("只区分手机 / 平板 / 电脑，型号统一用苹果；内置网页登录的 UA 会跟着一起换。")
-                .font(Typography.caption2)
-        }
-    }
-
-    // MARK: - Portal
-
-    private var portalSection: some View {
-        Section {
-            HStack(spacing: Spacing.s) {
-                TextField("http://100.100.9.2/gportal/web/login", text: $portal)
-                    .textContentType(.URL)
-                    .keyboardType(.URL)
-                    .autocorrectionDisabled()
-                    .textInputAutocapitalization(.never)
-                    .font(Typography.mono)
-                    .onSubmit { applyPortal() }
-                    .submitLabel(.done)
-            }
-
-            Button("恢复默认站点") {
-                portal = GiWifiProtocol.defaultPortal
-                applyPortal()
-            }
-            .font(Typography.body)
-
-            Button("保存站点") { applyPortal() }
-                .font(Typography.body)
-                .foregroundStyle(Color.appBrand)
-        } header: {
-            Text("Portal 站点")
-        } footer: {
-            Text("留空则走 APK 原始探测（115.159.209.137 → 302 跳转）。填了就直连该站点。")
-                .font(Typography.caption2)
-        }
-    }
-
-    private func applyPortal() {
-        let value = portal.trimmingCharacters(in: .whitespacesAndNewlines)
-        store.updateSettings { $0.portalOverride = value }
-        store.append("Portal 站点已更新：\(value.isEmpty ? "自动探测" : value)")
-    }
-
-    // MARK: - 网关名
-
-    private var nasSection: some View {
-        Section {
-            TextField("留空自动获取（如 GiWiFi_lnsfHG）", text: $nasName)
-                .autocorrectionDisabled()
-                .textInputAutocapitalization(.never)
-                .font(Typography.mono)
-                .onSubmit { applyNasName() }
-                .submitLabel(.done)
-
-            Button("保存网关名") { applyNasName() }
-                .font(Typography.body)
-                .foregroundStyle(Color.appBrand)
-        } header: {
-            Text("网关名 nasName")
-        } footer: {
-            Text("认证被拒 CHALLENGE_ERR_DENY 基本都是这里对不上。留空时先用 queryAuthState 返回的真实网关名，取不到再抓 Portal 页面。")
-                .font(Typography.caption2)
-        }
-    }
-
-    private func applyNasName() {
-        let value = nasName.trimmingCharacters(in: .whitespacesAndNewlines)
-        store.updateSettings { $0.nasName = value }
-        store.append("网关名已更新：\(value.isEmpty ? "自动" : value)")
-    }
-
-    // MARK: - 协议参数
-
-    private var protocolSection: some View {
-        Section {
-            Stepper(value: Binding(
-                get: { store.settings.serviceType },
-                set: { value in store.updateSettings { $0.serviceType = value } }
-            ), in: 1...3) {
-                LabeledContent("service_type") {
-                    Text("\(store.settings.serviceType)")
-                        .font(Typography.monoValue)
+                VStack(alignment: .leading, spacing: Spacing.xxs) {
+                    Text("掉线自动重连").font(Typography.rowTitle)
+                    Text(store.autoRunning
+                         ? "每 \(Int(store.settings.reconnectInterval)) 秒检查一次"
+                         : "关闭后只能手动认证")
+                        .font(Typography.rowSubtitle)
                         .foregroundStyle(.secondary)
                 }
             }
-
-            LabeledContent("设备标识 appUuid") {
-                Text("…\(store.settings.appUuid.suffix(9))")
-                    .font(Typography.mono)
-                    .foregroundStyle(.secondary)
-            }
-
-            Button("重新生成设备标识") { confirmingReset = true }
-                .font(Typography.body)
-                .foregroundStyle(Color.appBrand)
-        } header: {
-            Text("协议参数")
-        } footer: {
-            Text("每个账号有独立的 appUuid，重新生成后需要重新认证一次。")
-                .font(Typography.caption2)
-        }
-    }
-
-    // MARK: - 保持在线
-
-    private var keepOnlineSection: some View {
-        Section {
-            Toggle("掉线自动重连", isOn: Binding(
-                get: { store.settings.autoReconnect },
-                set: { store.setAutoReconnect($0) }
-            ))
-
-            Toggle("设备冲突时自动换绑", isOn: Binding(
-                get: { store.settings.autoRebind },
-                set: { value in store.updateSettings { $0.autoRebind = value } }
-            ))
 
             Stepper(value: Binding(
                 get: { Int(store.settings.reconnectInterval) },
@@ -250,9 +101,63 @@ struct CampusNetSettingsView: View {
                         .foregroundStyle(.secondary)
                 }
             }
+
+            Toggle(isOn: $launchImmediately) {
+                Text("打开 App 后立即刷新").font(Typography.rowTitle)
+            }
+
+            Stepper(value: $launchDelay, in: LaunchRefresh.delayRange, step: 1) {
+                LabeledContent("延迟刷新") {
+                    Text("\(Int(launchDelay)) 秒")
+                        .font(Typography.monoValue)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .disabled(launchImmediately)
+            .opacity(launchImmediately ? 0.5 : 1)
         } header: {
-            Text("保持在线")
+            Text("自动守护")
+        } footer: {
+            Text("开启后 App 在前台时会定期检查连接，掉线自动重新认证。\n立即刷新：进 App 就查一次状态；关闭则等设定的秒数后再查。")
+                .font(Typography.caption2)
         }
+    }
+
+    // MARK: - 高级设置入口
+
+    private var advancedSection: some View {
+        Section {
+            NavigationRow(symbol: "slider.horizontal.3",
+                          title: "高级设置",
+                          detail: "认证入口、网关名、协议参数、上报设备",
+                          value: CampusRoute.advanced)
+        } footer: {
+            Text("这些参数改错会连不上，不确定时保持默认即可。")
+                .font(Typography.caption2)
+        }
+    }
+
+    // MARK: - 连接信息
+
+    private var infoSection: some View {
+        Section("连接信息") {
+            infoRow("设备档案", "\(store.currentProfile.kind.title) · \(store.currentProfile.staModel)")
+            infoRow("服务端 MAC", store.serverMac.isEmpty ? "未获取" : store.serverMac)
+            infoRow("认证入口", store.portal.isEmpty ? "未探测" : store.portal)
+        }
+    }
+
+    private func infoRow(_ title: String, _ value: String) -> some View {
+        HStack(alignment: .top, spacing: Spacing.m) {
+            Text(title)
+                .font(Typography.footnote)
+                .foregroundStyle(.secondary)
+                .frame(width: 76, alignment: .leading)
+            Text(value)
+                .font(Typography.footnote)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(.vertical, Spacing.xxs)
     }
 
     // MARK: - 关于
@@ -267,8 +172,7 @@ struct CampusNetSettingsView: View {
 
             Link(destination: URL(string: "https://github.com/Mhenwa/xGiWifi")!) {
                 HStack(spacing: Spacing.m) {
-                    Text("参考实现 xGiWifi（Dart/Flutter）")
-                        .font(Typography.body)
+                    Text("参考实现 xGiWifi").font(Typography.body)
                     Spacer(minLength: Spacing.s)
                     Image(systemName: "arrow.up.right")
                         .font(Typography.caption)

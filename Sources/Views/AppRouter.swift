@@ -14,6 +14,7 @@ enum LaundryRoute: Hashable {
 enum CampusRoute: Hashable {
     case logs
     case settings
+    case advanced
 }
 
 /// 二级页面的统一入口视图。
@@ -44,6 +45,8 @@ struct CampusDestination: View {
             CampusNetLogView()
         case .settings:
             CampusNetSettingsView()
+        case .advanced:
+            CampusAdvancedSettingsView()
         }
     }
 }

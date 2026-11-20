@@ -1,10 +1,10 @@
 import SwiftUI
 import UIKit
 
-/// 校园网主页的账号与二级页入口分组。
+/// 校园网主页里跨文件复用的分组：账号卡、连接状态卡、认证方式。
 ///
-/// 拆出来是因为主页主文件已经到 330 行，超过单文件上限；
-/// 这两块不依赖主页的任何私有状态（除了 `showAccounts`，已放开可见性）。
+/// 拆出来是因为主页主文件要守住单文件上限；
+/// 这里只依赖 `store` 与 `showAccounts` / `openPortal`（都在主文件里是 internal）。
 extension CampusNetHomeView {
     // MARK: - 账号
 
@@ -17,7 +17,9 @@ extension CampusNetHomeView {
                     AppIconCircle(symbol: "person.fill", tint: .appBrand)
                     VStack(alignment: .leading, spacing: Spacing.xxs) {
                         Text(store.currentAccountName).font(Typography.rowTitle)
-                        Text(store.settings.username.isEmpty ? "点此添加或登录账号" : store.settings.username)
+                        Text(store.settings.username.isEmpty
+                             ? "点此添加或登录账号"
+                             : store.settings.username)
                             .font(Typography.rowSubtitle)
                             .foregroundStyle(.secondary)
                     }
@@ -27,37 +29,94 @@ extension CampusNetHomeView {
                         .foregroundStyle(.secondary)
                     AppChevron()
                 }
+                .padding(.vertical, Spacing.xxs)
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
         }
     }
 
-    // MARK: - 二级页入口
+    // MARK: - 连接状态
 
-    var linksSection: some View {
+    var statusSection: some View {
         Section {
-            NavigationLink(value: CampusRoute.logs) {
-                HStack(spacing: Spacing.m) {
-                    AppIconCircle(symbol: "doc.text.magnifyingglass", tint: .appBrand)
-                    Text("连接日志").font(Typography.rowTitle)
-                    Spacer(minLength: Spacing.s)
-                    Text("\(store.logs.count) 行")
-                        .font(Typography.caption2)
+            HStack(spacing: Spacing.l) {
+                ZStack {
+                    Circle()
+                        .fill(store.state == .online
+                              ? Color.appSuccess.opacity(0.18)
+                              : Color(uiColor: .quaternarySystemFill))
+                    Image(systemName: statusSymbol)
+                        .font(Typography.title3.weight(.semibold))
+                        .foregroundStyle(statusColor)
+                }
+                .frame(width: 56, height: 56)
+
+                VStack(alignment: .leading, spacing: Spacing.xs) {
+                    Text(store.state.title)
+                        .font(Typography.sectionTitle)
+                    Text(store.detail)
+                        .font(Typography.footnote)
                         .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
-                .padding(.vertical, Spacing.xxs)
+
+                Spacer(minLength: Spacing.xs)
+
+                StatusBadge(store.state == .online ? "在线" : "离线",
+                            kind: store.state == .online ? .success : .neutral)
             }
-            NavigationLink(value: CampusRoute.settings) {
-                HStack(spacing: Spacing.m) {
-                    AppIconCircle(symbol: "gearshape", tint: .appBrand)
-                    Text("校园网设置").font(Typography.rowTitle)
-                    Spacer(minLength: 0)
-                }
-                .padding(.vertical, Spacing.xxs)
-            }
+            .padding(.vertical, Spacing.xs)
         }
     }
 
-}
+    var statusSymbol: String {
+        switch store.state {
+        case .online: return "checkmark"
+        case .checking, .connecting: return "arrow.triangle.2.circlepath"
+        case .failed: return "exclamationmark"
+        case .offline, .idle: return "wifi.slash"
+        }
+    }
 
+    var statusColor: Color {
+        switch store.state {
+        case .online, .checking, .connecting: return .appBrand
+        case .failed: return .appDanger
+        case .offline, .idle: return .secondary
+        }
+    }
+
+    // MARK: - 认证方式
+
+    var methodSection: some View {
+        Section {
+            Button { openPortal() } label: {
+                methodRow(symbol: "safari", title: "内置网页")
+            }
+            .buttonStyle(.plain)
+
+            Button { Task { await webLogin() } } label: {
+                methodRow(symbol: "text.insert", title: "网页表单登录")
+            }
+            .buttonStyle(.plain)
+            .disabled(isCheckingNow)
+        } header: {
+            Text("认证方式")
+        } footer: {
+            Text("认证被拒绝、或者想换资料时，用这里打开学校认证页手动登录一次。")
+                .font(Typography.caption2)
+        }
+    }
+
+    private func methodRow(symbol: String, title: String) -> some View {
+        HStack(spacing: Spacing.m) {
+            AppIconCircle(symbol: symbol)
+            Text(title).font(Typography.rowTitle)
+            Spacer(minLength: Spacing.s)
+            AppChevron()
+        }
+        .frame(minHeight: Spacing.rowMinHeight)
+        .contentShape(Rectangle())
+    }
+}
