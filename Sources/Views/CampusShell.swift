@@ -31,6 +31,13 @@ enum AppTab: Hashable {
             return "wifi"
         }
     }
+
+    /// 底栏的渲染顺序与 `case` 声明顺序一致。
+    static var items: [FloatingTabItem<AppTab>] {
+        [AppTab.laundry, AppTab.campusNet].map {
+            FloatingTabItem(tab: $0, title: $0.title, symbol: $0.symbol)
+        }
+    }
 }
 
 struct CampusShell: View {
@@ -43,27 +50,50 @@ struct CampusShell: View {
     @State private var didAutoDetect = false
 
     var body: some View {
-        TabView(selection: $tab) {
-            NavigationStack(path: $laundryPath) {
-                LaundryView()
-                    .navigationDestination(for: LaundryRoute.self) { route in
-                        LaundryDestination(route: route)
-                    }
-                    .task { await autoDetectOnce() }
-            }
-            .tag(AppTab.laundry)
-            .tabItem { Label(AppTab.laundry.title, systemImage: AppTab.laundry.symbol) }
+        ZStack {
+            laundryStack
+                .opacity(tab == .laundry ? 1 : 0)
+                .allowsHitTesting(tab == .laundry)
+                .accessibilityHidden(tab != .laundry)
 
-            NavigationStack(path: $campusPath) {
-                CampusNetHomeView()
-                    .navigationDestination(for: CampusRoute.self) { route in
-                        CampusDestination(route: route)
-                    }
-            }
-            .tag(AppTab.campusNet)
-            .tabItem { Label(AppTab.campusNet.title, systemImage: AppTab.campusNet.symbol) }
+            campusStack
+                .opacity(tab == .campusNet ? 1 : 0)
+                .allowsHitTesting(tab == .campusNet)
+                .accessibilityHidden(tab != .campusNet)
         }
-        .tint(.appBrand)
+        .overlay(alignment: .bottom) {
+            // 二级页面自己声明隐藏底栏，这里只负责按当前栈深度决定是否渲染。
+            if showsTabBar {
+                FloatingTabBar(items: AppTab.items, selection: $tab)
+            }
+        }
+    }
+
+    /// 两个栈的栈顶必须和当前 Tab 对应，二级页面才不会被底栏挡住。
+    private var showsTabBar: Bool {
+        switch tab {
+        case .laundry: return laundryPath.isEmpty
+        case .campusNet: return campusPath.isEmpty
+        }
+    }
+
+    private var laundryStack: some View {
+        NavigationStack(path: $laundryPath) {
+            LaundryView()
+                .navigationDestination(for: LaundryRoute.self) { route in
+                    LaundryDestination(route: route)
+                }
+                .task { await autoDetectOnce() }
+        }
+    }
+
+    private var campusStack: some View {
+        NavigationStack(path: $campusPath) {
+            CampusNetHomeView()
+                .navigationDestination(for: CampusRoute.self) { route in
+                    CampusDestination(route: route)
+                }
+        }
     }
 
     /// 第一次进入洗衣 Tab 时自动检测一次连接状态；之后不再重复打扰。

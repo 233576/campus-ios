@@ -25,6 +25,7 @@ struct CampusNetHomeView: View {
             infoSection
         }
         .appNavigation(title: "GiWiFi 助手", subtitle: "校园网 · 一键认证")
+        .toolbarBackground(.automatic, for: .navigationBar)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 GlassToolbarLink(symbol: "gearshape", label: "校园网设置", value: CampusRoute.settings)

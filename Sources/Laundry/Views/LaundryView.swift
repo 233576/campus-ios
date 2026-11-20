@@ -43,6 +43,7 @@ struct LaundryView: View {
             }
         }
         .appNavigation(title: "胖乖洗衣", subtitle: "洗衣机 · 扫码即用")
+        .toolbarBackground(.automatic, for: .navigationBar)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 GlassToolbarButton(symbol: "arrow.clockwise", label: "刷新") {
