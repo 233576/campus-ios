@@ -1,74 +1,262 @@
 import SwiftUI
 import UIKit
 
+/// 校园网主页：账号、连接状态、四个动作、上报设备、自动守护、连接信息。
+///
+/// 全部走 AppList Section；「立即认证」用 safeAreaInset 固定在底部。
+/// 原来的顶部自绘分段已随模块外壳一起删除，这里是 TabView 的一级页面。
 struct CampusNetHomeView: View {
     @EnvironmentObject private var store: CampusNetStore
+
     @State private var showAccounts = false
     @State private var showingProfileEditor = false
     @State private var showingPortalWeb = false
 
     var body: some View {
-        NavigationStack {
-            ZStack {
-                FlatBackground()
-
-                ScrollView {
-                    VStack(spacing: 14) {
-                        accountCard
-                        statusCard
-                        actionRow
-                        kindStrip
-                        autoRow
-                        infoCard
-                    }
-                    .padding(.horizontal, 16)
-                    .padding(.top, 6)
-                    .padding(.bottom, 16)
-                }
-                .scrollIndicators(.hidden)
-                .refreshable { await store.refreshState() }
-            }
-            .toolbar(.hidden, for: .navigationBar)
-            .sheet(isPresented: $showAccounts) {
-                AccountsView(isPicker: true).environmentObject(store)
-            }
-            .sheet(isPresented: $showingProfileEditor) {
-                ProfileEditorView(profile: nil).environmentObject(store)
-            }
-            .sheet(isPresented: $showingPortalWeb) {
-                if let url = portalURL {
-                    PortalWebView(url: url,
-                                  userAgent: GiWifiProtocol.browserUserAgent(for: store.currentProfile)) {
-                        Task { await store.refreshState() }
-                    }
+        AppList {
+            accountSection
+            statusSection
+            actionSection
+            deviceSection
+            autoSection
+            infoSection
+        }
+        .appNavigation(title: "校园网")
+        .refreshable { await store.refreshState() }
+        .safeAreaInset(edge: .bottom, spacing: 0) { bottomBar }
+        .sheet(isPresented: $showAccounts) {
+            AccountsView(isPicker: true).environmentObject(store)
+        }
+        .sheet(isPresented: $showingProfileEditor) {
+            ProfileEditorView(profile: nil).environmentObject(store)
+        }
+        .sheet(isPresented: $showingPortalWeb) {
+            if let url = portalURL {
+                PortalWebView(url: url,
+                              userAgent: GiWifiProtocol.browserUserAgent(for: store.currentProfile)) {
+                    Task { await store.refreshState() }
                 }
             }
-            .alert(store.rebindAlertTitle, isPresented: Binding(
-                get: { store.errorText != nil || store.needsRebind },
-                set: { if !$0 { store.clearError() } }
-            )) {
-                if store.rebindAvailable {
-                    Button("立即换绑到本机") {
-                        Task { await store.rebindDevice() }
-                    }
+        }
+        .alert(store.rebindAlertTitle, isPresented: Binding(
+            get: { store.errorText != nil || store.needsRebind },
+            set: { if !$0 { store.clearError() } }
+        )) {
+            if store.rebindAvailable {
+                Button("立即换绑到本机") {
+                    Task { await store.rebindDevice() }
                 }
-                if store.needsProfile || store.needsWebAuth {
-                    Button("内置网页登录") { openPortal() }
-                }
-                Button("取消", role: .cancel) { store.clearError() }
-            } message: {
-                if let error = store.errorText {
-                    Text(error)
-                } else if store.needsRebind {
-                    Text("这一条要先把账号从原来那台设备换绑过来，才能继续上网。\n\n\(store.detail)")
-                } else {
-                    Text(store.detail)
-                }
+            }
+            if store.needsProfile || store.needsWebAuth {
+                Button("内置网页登录") { openPortal() }
+            }
+            Button("取消", role: .cancel) { store.clearError() }
+        } message: {
+            if let error = store.errorText {
+                Text(error)
+            } else if store.needsRebind {
+                Text("这一条要先把账号从原来那台设备换绑过来，才能继续上网。\n\n\(store.detail)")
+            } else {
+                Text(store.detail)
             }
         }
     }
 
-    /// Portal 地址（手填优先，否则用默认站点）。
+    // MARK: - 账号
+
+    private var accountSection: some View {
+        Section {
+            Button {
+                showAccounts = true
+            } label: {
+                HStack(spacing: Spacing.m) {
+                    AppIconCircle(symbol: "person.fill", tint: .appBrand)
+                    VStack(alignment: .leading, spacing: Spacing.xxs) {
+                        Text(store.currentAccountName).font(Typography.rowTitle)
+                        Text(store.settings.username.isEmpty ? "点此添加或登录账号" : store.settings.username)
+                            .font(Typography.rowSubtitle)
+                            .foregroundStyle(.secondary)
+                    }
+                    Spacer(minLength: Spacing.s)
+                    Text("\(store.accounts.count) 个账号")
+                        .font(Typography.caption2)
+                        .foregroundStyle(.secondary)
+                    AppChevron()
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
+    // MARK: - 状态
+
+    private var statusSection: some View {
+        Section {
+            HStack(spacing: Spacing.l) {
+                ZStack {
+                    Circle()
+                        .fill(store.state == .online ? Color.appBrand.opacity(0.15) : Color.appTertiaryFill)
+                    Image(systemName: symbol)
+                        .font(Typography.title3.weight(.semibold))
+                        .foregroundStyle(stateColor)
+                }
+                .frame(width: 56, height: 56)
+
+                VStack(alignment: .leading, spacing: Spacing.xs) {
+                    Text(store.state.title)
+                        .font(Typography.sectionTitle)
+                    Text(store.detail)
+                        .font(Typography.footnote)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
+                Spacer(minLength: Spacing.xs)
+
+                StatusBadge(store.state == .online ? "在线" : "离线",
+                            kind: store.state == .online ? .success : .neutral)
+            }
+            .padding(.vertical, Spacing.xs)
+        }
+    }
+
+    // MARK: - 四个动作
+
+    private var actionSection: some View {
+        Section {
+            actionRow(symbol: "arrow.clockwise", title: "检测状态") {
+                Task { await store.refreshState() }
+            }
+            actionRow(symbol: "safari", title: "内置网页") { openPortal() }
+            actionRow(symbol: "text.insert", title: "网页表单登录") {
+                Task { await store.webLoginNow() }
+            }
+            actionRow(symbol: "iphone.and.arrow.forward",
+                      title: store.needsRebind ? "换绑到本机（需要确认）" : "换绑到本机") {
+                Task { await store.rebindDevice() }
+            }
+        } header: {
+            Text("操作")
+        }
+    }
+
+    private func actionRow(symbol: String, title: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(spacing: Spacing.m) {
+                Image(systemName: symbol)
+                    .font(Typography.subheadline)
+                    .foregroundStyle(Color.appBrand)
+                    .frame(width: 22)
+                Text(title).font(Typography.body)
+                Spacer(minLength: Spacing.s)
+                AppChevron()
+            }
+            .frame(minHeight: Spacing.rowMinHeight)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .disabled(store.state == .connecting)
+    }
+
+    // MARK: - 上报设备
+
+    private var deviceSection: some View {
+        Section {
+            Picker("上报设备", selection: Binding(
+                get: { store.currentProfile.kind },
+                set: { store.selectKind($0) }
+            )) {
+                ForEach(DeviceKind.allCases) { kind in
+                    Text(kind.title).tag(kind)
+                }
+            }
+            .pickerStyle(.segmented)
+
+            Button("自定义机型") { showingProfileEditor = true }
+                .font(Typography.body)
+                .foregroundStyle(Color.appBrand)
+                .frame(maxWidth: .infinity, minHeight: Spacing.rowMinHeight)
+
+            infoRow("上报值", "\(store.currentProfile.kind.btype) · \(store.currentProfile.kind.staType)")
+            infoRow("机型串", store.currentProfile.staModel)
+        } header: {
+            Text("上报设备")
+        } footer: {
+            Text("报文字段 btype/staType/staModel 与浏览器 UA 会一起切换。")
+                .font(Typography.caption2)
+        }
+    }
+
+    // MARK: - 自动守护
+
+    private var autoSection: some View {
+        Section {
+            Toggle(isOn: Binding(
+                get: { store.settings.autoReconnect },
+                set: { store.setAutoReconnect($0) }
+            )) {
+                VStack(alignment: .leading, spacing: Spacing.xxs) {
+                    Text("自动守护").font(Typography.rowTitle)
+                    Text(store.autoRunning
+                         ? "每 \(Int(store.settings.reconnectInterval)) 秒检测，掉线自动认证"
+                         : "关闭时只能手动认证")
+                        .font(Typography.rowSubtitle)
+                        .foregroundStyle(.secondary)
+                }
+            }
+        } header: {
+            Text("守护")
+        }
+    }
+
+    // MARK: - 连接信息
+
+    private var infoSection: some View {
+        Section("连接信息") {
+            infoRow("设备档案", "\(store.currentProfile.kind.title) · \(store.currentProfile.staModel)")
+            infoRow("服务端 MAC", store.serverMac.isEmpty ? "未获取" : store.serverMac)
+            infoRow("Portal", store.portal.isEmpty ? "未探测" : store.portal)
+            infoRow("浏览器 UA", store.currentProfile.kind.userAgent)
+        }
+    }
+
+    private func infoRow(_ title: String, _ value: String) -> some View {
+        HStack(alignment: .top, spacing: Spacing.m) {
+            Text(title)
+                .font(Typography.footnote)
+                .foregroundStyle(.secondary)
+                .frame(width: 76, alignment: .leading)
+            Text(value)
+                .font(Typography.footnote)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(.vertical, Spacing.xxs)
+    }
+
+    // MARK: - 底部主按钮
+
+    private var bottomBar: some View {
+        Button {
+            Task { await store.login() }
+        } label: {
+            HStack(spacing: Spacing.s) {
+                if store.state == .connecting {
+                    ProgressView().tint(.white)
+                }
+                Text(buttonTitle)
+            }
+        }
+        .buttonStyle(GlassButtonStyle(role: .primary))
+        .disabled(store.state == .connecting || store.settings.username.isEmpty)
+        .opacity(store.state == .connecting || store.settings.username.isEmpty ? 0.5 : 1)
+        .padding(.horizontal, Spacing.page)
+        .padding(.vertical, Spacing.s)
+        .background(.bar)
+    }
+
+    // MARK: - 派生
+
     private var portalURL: URL? {
         let raw = store.settings.portalOverride.isEmpty
             ? GiWifiProtocol.defaultPortal
@@ -80,276 +268,6 @@ struct CampusNetHomeView: View {
         store.clearError()
         showingPortalWeb = true
     }
-
-    // MARK: - 账号
-
-    private var accountCard: some View {
-        Button {
-            showAccounts = true
-        } label: {
-            HStack(spacing: 12) {
-                ZStack {
-                    Circle()
-                        .fill(Flat.accent.opacity(0.18))
-                        .frame(width: 38, height: 38)
-                    Image(systemName: "person.fill")
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundStyle(Flat.accent)
-                }
-
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(store.currentAccountName)
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(Flat.textPrimary)
-                    Text(store.settings.username.isEmpty ? "点此添加或登录账号" : store.settings.username)
-                        .font(.caption)
-                        .foregroundStyle(Flat.textTertiary)
-                }
-
-                Spacer(minLength: 0)
-
-                Text("\(store.accounts.count) 个账号")
-                    .font(.caption2)
-                    .foregroundStyle(Flat.textTertiary)
-                Image(systemName: "chevron.right")
-                    .font(.caption2)
-                    .foregroundStyle(Flat.textTertiary)
-            }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 12)
-            .flatCard()
-        }
-        .buttonStyle(.plain)
-    }
-
-    // MARK: - 状态
-
-    private var statusCard: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack(spacing: 14) {
-                FlatStatusMark(symbol: symbol, tint: stateColor)
-
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(store.state.title)
-                        .font(.title3.weight(.semibold))
-                        .foregroundStyle(Flat.textPrimary)
-                    Text(store.detail)
-                        .font(.footnote)
-                        .foregroundStyle(Flat.textSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-
-                Spacer(minLength: 0)
-
-                Text(store.state == .online ? "在线" : "离线")
-                    .font(.caption2.weight(.semibold))
-                    .foregroundStyle(store.state == .online ? Flat.green : Flat.textSecondary)
-                    .padding(.horizontal, 9)
-                    .padding(.vertical, 4)
-                    .background {
-                        RoundedRectangle(cornerRadius: 6, style: .continuous)
-                            .fill(store.state == .online ? Flat.green.opacity(0.12) : Flat.surfaceHigh)
-                    }
-            }
-        }
-        .padding(16)
-        .flatCard()
-    }
-
-    // MARK: - 操作
-
-    private var actionRow: some View {
-        VStack(spacing: 10) {
-            Button {
-                Task { await store.login() }
-            } label: {
-                HStack(spacing: 8) {
-                    if store.state == .connecting {
-                        ProgressView()
-                            .progressViewStyle(.circular)
-                            .tint(.white)
-                    }
-                    Text(buttonTitle)
-                        .font(.headline)
-                }
-            }
-            .buttonStyle(FlatButtonStyle(tint: Flat.accent, filled: true, height: 50))
-            .disabled(store.state == .connecting)
-
-            VStack(spacing: 0) {
-                actionItem(symbol: "arrow.clockwise", title: "检测状态") {
-                    Task { await store.refreshState() }
-                }
-                FlatDivider(inset: 52)
-                actionItem(symbol: "safari", title: "内置网页") {
-                    openPortal()
-                }
-                FlatDivider(inset: 52)
-                actionItem(symbol: "text.insert", title: "网页表单登录") {
-                    Task { await store.webLoginNow() }
-                }
-                FlatDivider(inset: 52)
-                actionItem(symbol: "iphone.and.arrow.forward",
-                           title: store.needsRebind ? "换绑到本机（需要确认）" : "换绑到本机") {
-                    Task { await store.rebindDevice() }
-                }
-            }
-            .flatCard()
-            .disabled(store.state == .connecting)
-        }
-    }
-
-    private func actionItem(symbol: String,
-                            title: String,
-                            action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            HStack(spacing: 12) {
-                Image(systemName: symbol)
-                    .font(.system(size: 15, weight: .medium))
-                    .foregroundStyle(Flat.accent)
-                    .frame(width: 24)
-                Text(title)
-                    .font(.subheadline)
-                    .foregroundStyle(Flat.textPrimary)
-                Spacer(minLength: 0)
-                Image(systemName: "chevron.right")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(Flat.textTertiary)
-            }
-            .padding(.horizontal, 16)
-            .frame(height: 46)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-    }
-
-    // MARK: - 设备类型
-
-    private var kindStrip: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                FlatSectionHeader(title: "上报设备")
-                Spacer()
-                Button {
-                    showingProfileEditor = true
-                } label: {
-                    Text("自定义机型")
-                        .font(.caption2.weight(.medium))
-                        .foregroundStyle(Flat.textSecondary)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 5)
-                        .background {
-                            Capsule(style: .continuous).fill(Flat.surfaceHigh)
-                        }
-                }
-                .buttonStyle(.plain)
-            }
-
-            HStack(spacing: 8) {
-                ForEach(DeviceKind.allCases) { kind in
-                    let selected = store.currentProfile.kind == kind
-                    Button {
-                        store.selectKind(kind)
-                    } label: {
-                        VStack(spacing: 6) {
-                            Image(systemName: kind.symbol)
-                                .font(.system(size: 18, weight: .medium))
-                            Text(kind.title)
-                                .font(.caption.weight(.medium))
-                        }
-                        .foregroundStyle(selected ? Flat.accent : Flat.textSecondary)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 12)
-                        .background {
-                            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                .fill(selected ? Color.blue.opacity(0.15) : Color.clear)
-                        }
-                        .overlay {
-                            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                .stroke(selected ? Color.blue.opacity(0.30) : Color.white.opacity(0.45),
-                                        lineWidth: 1)
-                        }
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-
-            Text("报文字段 btype/staType/staModel 与浏览器 UA 会一起切换。")
-                .font(.caption2)
-                .foregroundStyle(Flat.textTertiary)
-        }
-        .padding(16)
-        .flatCard()
-    }
-
-    // MARK: - 自动
-
-    private var autoRow: some View {
-        HStack(spacing: 12) {
-            VStack(alignment: .leading, spacing: 3) {
-                Text("自动守护")
-                    .font(.subheadline.weight(.medium))
-                    .foregroundStyle(Flat.textPrimary)
-                Text(store.autoRunning
-                     ? "每 \(Int(store.settings.reconnectInterval)) 秒检测，掉线自动认证"
-                     : "关闭时只能手动认证")
-                    .font(.caption2)
-                    .foregroundStyle(Flat.textTertiary)
-            }
-
-            Spacer(minLength: 0)
-
-            Toggle("", isOn: Binding(
-                get: { store.settings.autoReconnect },
-                set: { store.setAutoReconnect($0) }
-            ))
-            .labelsHidden()
-            .tint(Flat.accent)
-        }
-        .padding(16)
-        .flatCard()
-    }
-
-    // MARK: - 信息
-
-    private var infoCard: some View {
-        VStack(spacing: 0) {
-            FlatSectionHeader(title: "连接信息")
-                .padding(.horizontal, 16)
-                .padding(.top, 14)
-                .padding(.bottom, 10)
-
-            FlatDivider(inset: 16)
-
-            infoLine("设备档案", "\(store.currentProfile.kind.title) · \(store.currentProfile.staModel)")
-            FlatDivider(inset: 16)
-            infoLine("服务端 MAC", store.serverMac.isEmpty ? "未获取" : store.serverMac)
-            FlatDivider(inset: 16)
-            infoLine("Portal", store.portal.isEmpty ? "未探测" : store.portal)
-            FlatDivider(inset: 16)
-            infoLine("浏览器 UA", store.currentProfile.kind.userAgent)
-        }
-        .padding(.bottom, 4)
-        .flatCard()
-    }
-
-    private func infoLine(_ title: String, _ value: String) -> some View {
-        HStack(alignment: .top, spacing: 12) {
-            Text(title)
-                .font(.footnote)
-                .foregroundStyle(Flat.textTertiary)
-                .frame(width: 76, alignment: .leading)
-            Text(value)
-                .font(.footnote)
-                .foregroundStyle(Flat.textSecondary)
-                .multilineTextAlignment(.leading)
-                .frame(maxWidth: .infinity, alignment: .leading)
-        }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 10)
-    }
-
-    // MARK: - 派生状态
 
     private var buttonTitle: String {
         switch store.state {
@@ -370,24 +288,10 @@ struct CampusNetHomeView: View {
 
     private var stateColor: Color {
         switch store.state {
-        case .online: return Flat.green
-        case .checking, .connecting: return Flat.accent
-        case .failed: return Flat.red
-        case .offline, .idle: return Flat.textTertiary
+        case .online: return .appBrand
+        case .checking, .connecting: return .appBrand
+        case .failed: return .appDanger
+        case .offline, .idle: return .secondary
         }
     }
-
-    private var progress: Double {
-        switch store.state {
-        case .online: return 1
-        case .checking: return 0.35
-        case .connecting: return 0.65
-        case .failed: return 0.28
-        case .offline, .idle: return 0.06
-        }
-    }
-}
-
-#Preview {
-    CampusNetHomeView().environmentObject(CampusNetStore())
 }
