@@ -79,7 +79,7 @@ struct CampusShell: View {
             }
             .padding(5)
             .frame(height: barHeight)
-            .liquidGlassSurface(radius: barHeight / 2)
+            .liquidGlassSurface(radius: barHeight / 2, tintOpacity: 0.04)
             .overlay {
                 Capsule(style: .continuous)
                     .strokeBorder(GlassPalette.edge.opacity(0.55), lineWidth: 0.8)
@@ -101,24 +101,15 @@ struct CampusShell: View {
                 Text(item.title)
                     .font(.system(size: 14, weight: .semibold))
             }
-            .foregroundStyle(selected ? Color.white : GlassPalette.textSecondary)
+            .foregroundStyle(selected ? GlassPalette.accent : GlassPalette.textSecondary)
             .frame(maxWidth: .infinity)
             .frame(height: barHeight - 10)
             .background {
                 if selected {
-                    let shape = Capsule(style: .continuous)
-                    ZStack {
-                        shape.fill(
-                            LinearGradient(colors: [GlassPalette.accent, GlassPalette.accent.opacity(0.82)],
-                                           startPoint: .top, endPoint: .bottom)
-                        )
-                        shape.fill(
-                            LinearGradient(colors: [Color.white.opacity(0.35), Color.clear],
-                                           startPoint: .top, endPoint: .center)
-                        )
-                    }
-                    .matchedGeometryEffect(id: "sectionIndicator", in: indicator)
-                    .shadow(color: GlassPalette.accent.opacity(0.35), radius: 10, y: 4)
+                    Capsule(style: .continuous)
+                        .fill(Color.dyn(light: 0xFFFFFF, dark: 0xFFFFFF, lightAlpha: 0.52, darkAlpha: 0.13))
+                        .matchedGeometryEffect(id: "sectionIndicator", in: indicator)
+                        .shadow(color: GlassPalette.shadow.opacity(0.6), radius: 6, y: 2)
                 }
             }
             .contentShape(Capsule(style: .continuous))
