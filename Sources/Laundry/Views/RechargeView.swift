@@ -95,10 +95,10 @@ struct RechargeView: View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 6) {
                 Image(systemName: "wallet.bifold.fill")
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(Typography.caption.weight(.semibold))
                     .foregroundStyle(Flat.orange)
                 Text("账号余额 ¥ \(store.user?.balanceText.replacingOccurrences(of: "¥", with: "") ?? "—")")
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(Typography.footnote.weight(.semibold))
                     .foregroundStyle(Flat.textPrimary)
                 Spacer()
                 Button {
@@ -108,25 +108,25 @@ struct RechargeView: View {
                     }
                 } label: {
                     Text("刷新")
-                        .font(.system(size: 12, weight: .semibold))
+                        .font(Typography.caption.weight(.semibold))
                         .foregroundStyle(Flat.accent)
                 }
                 .buttonStyle(.plain)
             }
             HStack(spacing: 6) {
                 Text("店铺余额 \(store.shopBalanceText)")
-                    .font(.system(size: 12, weight: .medium))
+                    .font(Typography.caption.weight(.medium))
                     .foregroundStyle(store.shopBalanceTotal > 0 ? Flat.green : Flat.textTertiary)
                 if !store.balances.isEmpty {
                     Text("· \(store.device?.orgName ?? store.balances[0].shopNames)")
-                        .font(.system(size: 11))
+                        .font(Typography.caption2)
                         .foregroundStyle(Flat.textTertiary)
                         .lineLimit(1)
                 }
                 Spacer()
             }
             Text("胖乖的余额分两种：账号余额（通用，官方渠道充）和店铺余额（本页充值，可直接付这台机器）。")
-                .font(.system(size: 11))
+                .font(Typography.caption2)
                 .foregroundStyle(Flat.textTertiary)
                 .fixedSize(horizontal: false, vertical: true)
         }
@@ -146,7 +146,7 @@ struct RechargeView: View {
                     page = item
                 } label: {
                     Text(item.title)
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(Typography.footnote.weight(.semibold))
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 8)
                 }
@@ -162,10 +162,10 @@ struct RechargeView: View {
         VStack(spacing: 8) {
             HStack(spacing: 8) {
                 Text("店铺 ID")
-                    .font(.system(size: 12))
+                    .font(Typography.caption)
                     .foregroundStyle(Flat.textTertiary)
                 TextField("店铺 ID（当前机器所在网点）", text: $shopIdDraft)
-                    .font(.system(size: 13, design: .monospaced))
+                    .font(Typography.mono)
                     .keyboardType(.numberPad)
                     .textInputAutocapitalization(.never)
                     .flatField()
@@ -174,17 +174,17 @@ struct RechargeView: View {
                         appliedShopId = shopIdDraft.trimmingCharacters(in: .whitespacesAndNewlines)
                         editingShop = false
                     }
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(Typography.caption.weight(.semibold))
                     .foregroundStyle(Flat.accent)
                 } else {
                     Button("改") { editingShop = true }
-                        .font(.system(size: 12, weight: .semibold))
+                        .font(Typography.caption.weight(.semibold))
                         .foregroundStyle(Flat.textSecondary)
                 }
             }
             HStack(spacing: 6) {
                 Text(shopId.isEmpty ? "没有店铺 ID：先扫码识别一台洗衣机，或手填网点编号。" : "当前店铺：\(store.device?.orgName ?? "—") · \(shopId)")
-                    .font(.system(size: 11))
+                    .font(Typography.caption2)
                     .foregroundStyle(shopId.isEmpty ? Flat.orange : Flat.textTertiary)
                     .lineLimit(2)
                 Spacer()
@@ -197,13 +197,13 @@ struct RechargeView: View {
     private var missingShop: some View {
         VStack(spacing: 12) {
             Image(systemName: "number.square")
-                .font(.system(size: 34, weight: .light))
+                .font(Typography.pageTitle.weight(.light))
                 .foregroundStyle(Flat.textTertiary)
             Text("还没有店铺 ID")
-                .font(.system(size: 15, weight: .medium))
+                .font(Typography.subheadline.weight(.medium))
                 .foregroundStyle(Flat.textSecondary)
             Text("充值页按店铺开通。先在洗衣页扫码识别一台洗衣机，\n或者在上面手填网点编号后点「打开」。")
-                .font(.system(size: 12))
+                .font(Typography.caption)
                 .foregroundStyle(Flat.textTertiary)
                 .multilineTextAlignment(.center)
         }
@@ -214,13 +214,13 @@ struct RechargeView: View {
     private var emptyState: some View {
         VStack(spacing: 12) {
             Image(systemName: "wifi.exclamationmark")
-                .font(.system(size: 34, weight: .light))
+                .font(Typography.pageTitle.weight(.light))
                 .foregroundStyle(Flat.textTertiary)
             Text("登录后才有充值链接")
-                .font(.system(size: 15, weight: .medium))
+                .font(Typography.subheadline.weight(.medium))
                 .foregroundStyle(Flat.textSecondary)
             Text("先在「洗衣」页登录手机号，再回来充值。")
-                .font(.system(size: 12))
+                .font(Typography.caption)
                 .foregroundStyle(Flat.textTertiary)
                 .multilineTextAlignment(.center)
         }

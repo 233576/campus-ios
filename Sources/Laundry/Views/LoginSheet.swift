@@ -27,10 +27,10 @@ struct LoginSheet: View {
                 VStack(alignment: .leading, spacing: 16) {
                     VStack(alignment: .leading, spacing: 6) {
                         Text("登录胖乖生活")
-                            .font(.system(size: 22, weight: .bold))
+                            .font(Typography.sectionTitle.weight(.bold))
                             .foregroundStyle(Flat.textPrimary)
                         Text("只做洗衣机。手机号收验证码，或者直接粘贴一个有效 token。")
-                            .font(.system(size: 13))
+                            .font(Typography.footnote)
                             .foregroundStyle(Flat.textSecondary)
                     }
                     .padding(.top, 16)
@@ -55,7 +55,7 @@ struct LoginSheet: View {
                                 ProgressView().tint(.white)
                             }
                             Text(loggingIn ? "登录中…" : "登录")
-                                .font(.system(size: 16, weight: .semibold))
+                                .font(Typography.body.weight(.semibold))
                         }
                         .frame(maxWidth: .infinity)
                     }
@@ -65,7 +65,7 @@ struct LoginSheet: View {
                     Text(mode == 0
                          ? "同校同学用过的机器会自动记在首页「最近」，下次点一下就直接下单。"
                          : "凭证一般 30 天有效。抓包位置：小程序里点任意请求，看表单字段 `token=`。")
-                        .font(.system(size: 12))
+                        .font(Typography.caption)
                         .foregroundStyle(Flat.textTertiary)
                         .padding(.horizontal, 4)
                 }
@@ -86,7 +86,7 @@ struct LoginSheet: View {
             mode = index
         } label: {
             Text(title)
-                .font(.system(size: 13, weight: .semibold))
+                .font(Typography.footnote.weight(.semibold))
                 .foregroundStyle(mode == index ? Flat.accent : Flat.textSecondary)
                 .padding(.horizontal, 14)
                 .padding(.vertical, 8)
@@ -116,7 +116,7 @@ struct LoginSheet: View {
                     }
                 } label: {
                     Text(store.codeCountdown > 0 ? "\(store.codeCountdown)s" : "发送")
-                        .font(.system(size: 14, weight: .semibold))
+                        .font(Typography.subheadline.weight(.semibold))
                         .frame(width: 74)
                 }
                 .buttonStyle(FlatButtonStyle(tint: Flat.accent, filled: false, height: 46))
@@ -141,7 +141,7 @@ struct LoginSheet: View {
                     }
                 } label: {
                     Label("从剪贴板粘贴", systemImage: "doc.on.clipboard")
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(Typography.footnote.weight(.semibold))
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(FlatButtonStyle(tint: Flat.accent, filled: false, height: 42))
@@ -150,14 +150,14 @@ struct LoginSheet: View {
                     tokenText = ""
                 } label: {
                     Text("清空")
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(Typography.footnote.weight(.semibold))
                         .frame(width: 62)
                 }
                 .buttonStyle(FlatButtonStyle(tint: Flat.textSecondary, filled: false, height: 42))
             }
 
             Text("粘 `token=4813f4…` 这种整段也行，会自动截取。")
-                .font(.system(size: 11))
+                .font(Typography.caption2)
                 .foregroundStyle(Flat.textTertiary)
         }
         .padding(16)

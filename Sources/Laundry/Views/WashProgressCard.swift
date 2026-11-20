@@ -41,7 +41,7 @@ struct WashProgressCard: View {
 
             HStack(alignment: .firstTextBaseline, spacing: 6) {
                 Text(order.remainingText(now: now))
-                    .font(.system(size: 46, weight: .semibold, design: .rounded))
+                    .font(Typography.pageTitle.weight(.semibold))
                     .monospacedDigit()
                     .foregroundStyle(isDone ? Flat.green : Flat.textPrimary)
                 Text(isDone ? "已完成" : "后洗好")
@@ -78,20 +78,20 @@ struct WashProgressCard: View {
         let tint = alert.isWarning ? Flat.orange : Flat.accent
         return HStack(alignment: .top, spacing: 10) {
             Image(systemName: alert.isWarning ? "exclamationmark.triangle.fill" : "info.circle.fill")
-                .font(.system(size: 15, weight: .semibold))
+                .font(Typography.subheadline.weight(.semibold))
                 .foregroundStyle(tint)
 
             VStack(alignment: .leading, spacing: 3) {
                 Text(alert.title)
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(Typography.subheadline.weight(.semibold))
                     .foregroundStyle(Flat.textPrimary)
                 Text(alert.detail)
-                    .font(.system(size: 12))
+                    .font(Typography.caption)
                     .foregroundStyle(Flat.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
                 if alert.isWarning {
                     Text("检查洗衣机门是否关紧；仍然异常就联系商家点「故障上报」。")
-                        .font(.system(size: 11))
+                        .font(Typography.caption2)
                         .foregroundStyle(Flat.textTertiary)
                         .fixedSize(horizontal: false, vertical: true)
                 }

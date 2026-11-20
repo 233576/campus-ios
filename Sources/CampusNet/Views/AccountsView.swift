@@ -64,7 +64,7 @@ struct AccountsView: View {
                         adding = true
                     } label: {
                         Image(systemName: "plus")
-                            .font(.system(size: 15, weight: .semibold))
+                            .font(Typography.subheadline.weight(.semibold))
                             .foregroundStyle(Flat.textPrimary)
                     }
                 }
@@ -95,7 +95,7 @@ struct AccountsView: View {
     private var emptyCard: some View {
         VStack(spacing: 8) {
             Image(systemName: "person.crop.circle.badge.plus")
-                .font(.system(size: 28, weight: .light))
+                .font(Typography.pageTitle.weight(.light))
                 .foregroundStyle(Flat.textTertiary)
             Text("还没有账号")
                 .font(.subheadline.weight(.medium))
@@ -135,7 +135,7 @@ struct AccountsView: View {
                             .foregroundStyle(Flat.textPrimary)
                         if isCurrent {
                             Text("当前")
-                                .font(.system(size: 9, weight: .semibold))
+                                .font(Typography.caption2.weight(.semibold))
                                 .foregroundStyle(Flat.green)
                                 .padding(.horizontal, 6)
                                 .padding(.vertical, 2)
@@ -150,7 +150,7 @@ struct AccountsView: View {
                 Spacer(minLength: 0)
 
                 Image(systemName: "arrow.right.circle")
-                    .font(.system(size: 17))
+                    .font(Typography.body)
                     .foregroundStyle(Flat.accent)
             }
             .padding(.horizontal, 14)

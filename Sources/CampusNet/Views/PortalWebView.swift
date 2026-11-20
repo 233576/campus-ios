@@ -48,7 +48,7 @@ struct PortalWebView: View {
                             model.webView.goBack()
                         } label: {
                             Image(systemName: "chevron.backward")
-                                .font(.system(size: 14, weight: .semibold))
+                                .font(Typography.subheadline.weight(.semibold))
                                 .frame(width: 32, height: 32)
                                 .flatPill()
                         }
@@ -60,7 +60,7 @@ struct PortalWebView: View {
                             model.webView.reload()
                         } label: {
                             Image(systemName: "arrow.clockwise")
-                                .font(.system(size: 14, weight: .semibold))
+                                .font(Typography.subheadline.weight(.semibold))
                                 .frame(width: 32, height: 32)
                                 .flatPill()
                         }

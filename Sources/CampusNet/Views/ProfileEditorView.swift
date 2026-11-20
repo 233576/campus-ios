@@ -92,7 +92,7 @@ struct ProfileEditorView: View {
                     } label: {
                         VStack(spacing: 5) {
                             Image(systemName: option.symbol)
-                                .font(.system(size: 15, weight: .medium))
+                                .font(Typography.subheadline.weight(.medium))
                             Text(option.title)
                                 .font(.caption.weight(.medium))
                         }

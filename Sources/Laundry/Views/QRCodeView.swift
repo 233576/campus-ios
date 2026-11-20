@@ -18,7 +18,7 @@ struct QRCodeView: View {
                     .fill(Flat.surfaceHigh)
                     .overlay(
                         Text("二维码生成失败")
-                            .font(.system(size: 12))
+                            .font(Typography.caption)
                             .foregroundStyle(Flat.textTertiary)
                     )
             }

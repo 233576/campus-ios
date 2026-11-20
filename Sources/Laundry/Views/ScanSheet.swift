@@ -24,15 +24,15 @@ struct ScanSheet: View {
                 } else {
                     VStack(spacing: 14) {
                         Image(systemName: "camera.viewfinder")
-                            .font(.system(size: 40, weight: .semibold))
+                            .font(Typography.pageTitle.weight(.semibold))
                             .foregroundStyle(Flat.textSecondary)
                         Text(permission == .denied ? "相机权限被关掉了" : "需要相机权限才能扫码")
-                            .font(.system(size: 15, weight: .semibold))
+                            .font(Typography.subheadline.weight(.semibold))
                             .foregroundStyle(Flat.textPrimary)
                         Text(permission == .denied
                              ? "到「设置 → 隐私与安全性 → 相机」里打开，或者直接在下方手动输入机器码。"
                              : "也可以直接在下方手动输入机器码。")
-                            .font(.system(size: 12))
+                            .font(Typography.caption)
                             .multilineTextAlignment(.center)
                             .foregroundStyle(Flat.textTertiary)
                             .padding(.horizontal, 24)
@@ -78,7 +78,7 @@ struct ScanSheet: View {
                 .strokeBorder(Color.white.opacity(0.9), lineWidth: 2)
                 .frame(width: 220, height: 220)
             Text("对准洗衣机上的二维码")
-                .font(.system(size: 13, weight: .medium))
+                .font(Typography.footnote.weight(.medium))
                 .foregroundStyle(.white.opacity(0.85))
         }
     }
@@ -96,7 +96,7 @@ struct ScanSheet: View {
                     }
                 } label: {
                     Text("粘贴")
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(Typography.footnote.weight(.semibold))
                         .foregroundStyle(Flat.accent)
                         .padding(.horizontal, 12)
                         .padding(.vertical, 11)
@@ -114,7 +114,7 @@ struct ScanSheet: View {
                 dismiss()
             } label: {
                 Text("用这个机器码")
-                    .font(.system(size: 15, weight: .semibold))
+                    .font(Typography.subheadline.weight(.semibold))
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(FlatButtonStyle(tint: Flat.accent, filled: true, height: 48))

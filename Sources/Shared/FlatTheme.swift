@@ -1,288 +1,120 @@
 import SwiftUI
-import UIKit
 
-// MARK: - 动态色
-
-extension UIColor {
-    convenience init(hexValue: UInt32, alpha: Double = 1) {
-        self.init(
-            red: CGFloat((hexValue >> 16) & 0xFF) / 255,
-            green: CGFloat((hexValue >> 8) & 0xFF) / 255,
-            blue: CGFloat(hexValue & 0xFF) / 255,
-            alpha: CGFloat(alpha)
-        )
-    }
-}
-
-extension Color {
-    /// 随系统外观切换的语义色。不用 Asset Catalog，是因为这些值只在这里用一次。
-    static func dyn(light: UIColor, dark: UIColor) -> Color {
-        Color(UIColor { trait in
-            trait.userInterfaceStyle == .dark ? dark : light
-        })
-    }
-
-    static func dyn(light: UInt32,
-                    dark: UInt32,
-                    lightAlpha: Double = 1,
-                    darkAlpha: Double = 1) -> Color {
-        .dyn(light: UIColor(hexValue: light, alpha: lightAlpha),
-             dark: UIColor(hexValue: dark, alpha: darkAlpha))
-    }
-}
-
-// MARK: - 色板
-
-/// iOS 原生系统色板。
+/// 旧主题兼容层。
 ///
-/// 三条规矩：
-/// 1. 只有一个主色（`accent` = 系统蓝），其余全是灰阶；
-/// 2. 卡片是纯色面 + 1px 分隔线，不用毛玻璃、不堆阴影；
-/// 3. 状态色（绿/红/橙）只出现在文字和图标上，不做背景。
-enum GlassPalette {
-    static let background = Color.dyn(light: 0xF2F2F7, dark: 0x000000)
-    static let groupedBackground = Color.dyn(light: 0xF2F2F7, dark: 0x000000)
-    static let surface = Color.dyn(light: 0xFFFFFF, dark: 0x1C1C1E)
-    static let surfaceHigh = Color.dyn(light: 0xF2F2F7, dark: 0x2C2C2E)
-    static let surfaceLow = Color.dyn(light: 0xFFFFFF, dark: 0x1C1C1E)
-    static let separator = Color.dyn(light: 0xE5E5EA, dark: 0x38383A)
-    static let hairline = Color.dyn(light: 0xE5E5EA, dark: 0x38383A)
-    static let edge = Color.dyn(light: 0xE5E5EA, dark: 0x38383A)
-
-    static let accent = Color.dyn(light: 0x007AFF, dark: 0x0A84FF)
-    static let green = Color.dyn(light: 0x34C759, dark: 0x30D158)
-    static let orange = Color.dyn(light: 0xFF9500, dark: 0xFF9F0A)
-    static let red = Color.dyn(light: 0xFF3B30, dark: 0xFF453A)
-    static let purple = Color.dyn(light: 0x5856D6, dark: 0x5E5CE6)
-    static let cyan = Color.dyn(light: 0x32ADE6, dark: 0x64D2FF)
-
-    static let textPrimary = Color.dyn(light: 0x000000, dark: 0xFFFFFF)
-    static let textSecondary = Color.dyn(light: 0x8E8E93, dark: 0x8E8E93)
-    static let textTertiary = Color.dyn(light: 0xC7C7CC, dark: 0x48484A)
-
-    static let radius: CGFloat = 20
-    static let cardRadius: CGFloat = 20
-    static let controlRadius: CGFloat = 10
-    static let fieldRadius: CGFloat = 10
-
-    static let shadow = Color.black.opacity(0.04)
-    static let glassShadow = Color.black.opacity(0.04)
-    static let glassEdge = separator
-    static let sheenTop = Color.clear
-    static let sheenBottom = Color.clear
-    static let specular = LinearGradient(colors: [separator, separator], startPoint: .top, endPoint: .bottom)
-    static let well = surfaceHigh
-
-    /// 选中态/强调态的浅色底：系统蓝的 12% 叠在纯色面上。
-    static let accentSoft = Color.dyn(light: 0x007AFF, dark: 0x0A84FF, lightAlpha: 0.12, darkAlpha: 0.18)
-}
-
-/// 旧名字的转发层。视图里大量写了 `Flat.xxx`，保留以免整体改写。
+/// View 层已全部切到 `Theme/` 与 `Components/`，这里只保留尚未迁移的
+/// 少数视图还在引用的符号，实现全部转发到语义色与系统材质，
+/// 不再出现任何写死的 hex、rgb 或 `.system(size:)`。
 enum Flat {
-    static let background = GlassPalette.background
-    static let groupedBackground = GlassPalette.groupedBackground
-    static let surface = GlassPalette.surface
-    static let surfaceHigh = GlassPalette.surfaceHigh
-    static let surfaceLow = GlassPalette.surfaceLow
-    static let separator = GlassPalette.separator
-    static let hairline = GlassPalette.hairline
-    static let edge = GlassPalette.edge
-    static let stroke = GlassPalette.separator
-    static let strokeStrong = GlassPalette.textTertiary
+    static let background = Color.appGroupedBackground
+    static let surface = Color.appSecondaryBackground
+    static let surfaceHigh = Color(uiColor: .secondarySystemGroupedBackground)
+    static let surfaceLow = Color(uiColor: .tertiarySystemGroupedBackground)
+    static let stroke = Color.appSeparator
+    static let strokeStrong = Color(uiColor: .separator)
+    static let hairline = Color.appSeparator
+    static let glassEdge = Color.appSeparator
+    static let glassShadow = Color.black.opacity(0.08)
+    static let sheenTop = Color.white.opacity(0.35)
+    static let sheenBottom = Color.white.opacity(0.08)
 
-    static let accent = GlassPalette.accent
-    static let green = GlassPalette.green
-    static let orange = GlassPalette.orange
-    static let red = GlassPalette.red
-    static let purple = GlassPalette.purple
-    static let cyan = GlassPalette.cyan
-    static let accentSoft = GlassPalette.accentSoft
+    static let accent = Color.appBrand
+    static let green = Color.appSuccess
+    static let orange = Color.appWarning
+    static let red = Color.appDanger
+    static let purple = Color(uiColor: .systemPurple)
+    static let cyan = Color(uiColor: .systemTeal)
 
-    static let textPrimary = GlassPalette.textPrimary
-    static let textSecondary = GlassPalette.textSecondary
-    static let textTertiary = GlassPalette.textTertiary
+    static let textPrimary = Color.primary
+    static let textSecondary = Color.secondary
+    static let textTertiary = Color(uiColor: .tertiaryLabel)
 
-    static let radius = GlassPalette.radius
-    static let cardRadius = GlassPalette.cardRadius
-    static let controlRadius = GlassPalette.controlRadius
-    static let fieldRadius = GlassPalette.fieldRadius
+    static let cardRadius: CGFloat = Radius.card
+    static let fieldRadius: CGFloat = Radius.control
 
-    static let shadow = GlassPalette.shadow
-    static let glassShadow = GlassPalette.glassShadow
-    static let glassEdge = GlassPalette.glassEdge
-    static let sheenTop = GlassPalette.sheenTop
-    static let sheenBottom = GlassPalette.sheenBottom
-    static let specular = GlassPalette.specular
-    static let well = GlassPalette.well
-    static let grayish = GlassPalette.surfaceHigh
+    static var specular: LinearGradient {
+        LinearGradient(colors: [Color.white.opacity(0.85), Color.white.opacity(0.10)],
+                       startPoint: .topLeading,
+                       endPoint: .bottomTrailing)
+    }
+
+    static let well = Color(uiColor: .tertiarySystemFill)
 }
 
-// MARK: - 背景
-
-/// 全局底：一层极浅的斜向渐变。
-///
-/// 玻璃全靠背后有东西可折射 —— 纯色底上不管怎么调材质都只是一块灰板，
-/// 所以这里必须留一层很淡的冷色过渡（浅灰 → 浅蓝）。
+/// 页面底色。
 struct FlatBackground: View {
-    @Environment(\.colorScheme) private var scheme
-
     var body: some View {
-        LinearGradient(
-            colors: scheme == .dark
-                ? [Color(red: 0.06, green: 0.06, blue: 0.08), Color(red: 0.03, green: 0.05, blue: 0.09)]
-                : [Color(red: 0.95, green: 0.95, blue: 0.97), Color(red: 0.90, green: 0.95, blue: 1.00)],
-            startPoint: .topLeading,
-            endPoint: .bottomTrailing
-        )
-        .ignoresSafeArea()
+        Color.appGroupedBackground.ignoresSafeArea()
     }
 }
 
-// MARK: - 卡片
-
-/// 纯色卡片：一个面 + 一条 1px 边，没有模糊、没有厚投影。
+/// 卡片：系统材质 + 细描边，不再有品牌色叠加。
 struct FlatCardModifier: ViewModifier {
-    var radius: CGFloat
-    var fill: Color
-
-    func body(content: Content) -> some View {
-        let shape = RoundedRectangle(cornerRadius: radius, style: .continuous)
-        content
-            .background(.ultraThinMaterial, in: shape)
-            .clipShape(shape)
-            .overlay {
-                // 边缘高光：左上最亮、右下几乎透明，模拟玻璃把光折过来
-                shape.stroke(
-                    LinearGradient(
-                        colors: [Color.white.opacity(0.85), Color.white.opacity(0.10)],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    ),
-                    lineWidth: 1
-                )
-            }
-            .shadow(color: Color.black.opacity(0.06), radius: 15, x: 0, y: 8)
-    }
-}
-
-extension View {
-    func flatCard(radius: CGFloat = GlassPalette.cardRadius,
-                  fill: Color = GlassPalette.surface) -> some View {
-        modifier(FlatCardModifier(radius: radius, fill: fill))
-    }
-
-    /// 带一点点强调色的卡片。底色仍是纯色，只把边框换成强调色的浅调。
-    func tintedCard(_ tint: Color, radius: CGFloat = GlassPalette.cardRadius) -> some View {
-        modifier(TintedCardModifier(radius: radius, tint: tint))
-    }
-
-    /// 分组列表的底色（Form / List 用）。
-    func groupedListBackground() -> some View {
-        scrollContentBackground(.hidden)
-            .background(GlassPalette.groupedBackground)
-    }
-
-    // 兼容旧调用名。
-    func glassListBackground() -> some View { groupedListBackground() }
-    func flatListBackground() -> some View { groupedListBackground() }
-}
-
-struct TintedCardModifier: ViewModifier {
-    var radius: CGFloat
-    var tint: Color
-
-    func body(content: Content) -> some View {
-        let shape = RoundedRectangle(cornerRadius: radius, style: .continuous)
-        content
-            .background(.ultraThinMaterial, in: shape)
-            .clipShape(shape)
-            .overlay {
-                shape.stroke(tint.opacity(0.35), lineWidth: 1)
-            }
-            .shadow(color: Color.black.opacity(0.06), radius: 15, x: 0, y: 8)
-    }
-}
-
-// MARK: - 输入框
-
-struct FlatFieldModifier: ViewModifier {
-    var radius: CGFloat
-    var fill: Color
+    var radius: CGFloat = Radius.card
+    var fill: Color = Color.appSecondaryBackground
+    var elevated: Bool = true
 
     func body(content: Content) -> some View {
         content
-            .padding(.horizontal, 12)
-            .padding(.vertical, 11)
-            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: radius, style: .continuous))
+            .background(fill, in: RoundedRectangle(cornerRadius: radius, style: .continuous))
             .overlay {
                 RoundedRectangle(cornerRadius: radius, style: .continuous)
-                    .stroke(Color.white.opacity(0.55), lineWidth: 1)
+                    .strokeBorder(Color.appSeparator, lineWidth: 0.5)
             }
-            .clipShape(RoundedRectangle(cornerRadius: radius, style: .continuous))
-            .shadow(color: Color.black.opacity(0.03), radius: 12, x: 0, y: 4)
+            .shadow(color: elevated ? Color.black.opacity(0.04) : .clear,
+                    radius: 10, x: 0, y: 4)
     }
 }
 
 extension View {
-    func flatField(radius: CGFloat = GlassPalette.fieldRadius,
-                   fill: Color = GlassPalette.surfaceHigh) -> some View {
-        modifier(FlatFieldModifier(radius: radius, fill: fill))
+    func flatCard(radius: CGFloat = Radius.card,
+                  fill: Color = Color.appSecondaryBackground,
+                  elevated: Bool = true) -> some View {
+        modifier(FlatCardModifier(radius: radius, fill: fill, elevated: elevated))
     }
 
-    // 兼容旧调用名：以前这些是毛玻璃输入框。
-    func glassField(radius: CGFloat = GlassPalette.fieldRadius) -> some View {
-        flatField(radius: radius)
+    func tintedCard(_ tint: Color, radius: CGFloat = Radius.card) -> some View {
+        modifier(FlatCardModifier(radius: radius, fill: tint.opacity(0.10), elevated: false))
+    }
+
+    func flatField(radius: CGFloat = Radius.control,
+                   fill: Color = Color(uiColor: .tertiarySystemFill)) -> some View {
+        self
+            .background(fill, in: RoundedRectangle(cornerRadius: radius, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: radius, style: .continuous)
+                    .strokeBorder(Color.appSeparator, lineWidth: 0.5)
+            }
+    }
+
+    func flatPill(selected: Bool = false, tint: Color = Color.appBrand) -> some View {
+        self
+            .background(selected ? tint.opacity(0.14) : Color(uiColor: .secondarySystemFill),
+                        in: Capsule(style: .continuous))
+            .overlay {
+                Capsule(style: .continuous)
+                    .strokeBorder(selected ? tint.opacity(0.55) : Color.clear, lineWidth: 1)
+            }
     }
 }
 
-// MARK: - 按钮
-
-/// 主按钮：实心系统蓝 + 白字，圆角 10，无渐变无高光。
-/// 次按钮：浅灰底 + 蓝字。
+/// 旧按钮样式：实心品牌色（primary）或浅灰（secondary）。
 struct FlatButtonStyle: ButtonStyle {
-    var tint: Color = GlassPalette.accent
+    var tint: Color = .appBrand
     var filled: Bool = true
-    var radius: CGFloat = GlassPalette.controlRadius
-    var height: CGFloat = 50
+    var radius: CGFloat = Radius.control
+    var height: CGFloat = Spacing.rowMinHeight
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .font(.system(size: filled ? 17 : 16, weight: .semibold))
-            .foregroundStyle(filled ? Color.white : (tint == GlassPalette.accent ? GlassPalette.accent : GlassPalette.textPrimary))
+            .font(Typography.headline)
+            .foregroundStyle(filled ? Color.white : tint)
             .frame(maxWidth: .infinity)
             .frame(height: height)
             .background {
-                let shape = RoundedRectangle(cornerRadius: radius, style: .continuous)
-                if filled {
-                    shape.fill(
-                        LinearGradient(
-                            colors: [Color.blue, Color(red: 0, green: 0.40, blue: 0.90)],
-                            startPoint: .top,
-                            endPoint: .bottom
-                        )
-                    )
-                } else {
-                    shape.fill(.ultraThinMaterial)
-                }
+                RoundedRectangle(cornerRadius: radius, style: .continuous)
+                    .fill(filled ? tint : Color(uiColor: .tertiarySystemFill))
             }
-            .overlay {
-                let shape = RoundedRectangle(cornerRadius: radius, style: .continuous)
-                shape.stroke(
-                    LinearGradient(
-                        colors: filled
-                            ? [Color.white.opacity(0.65), Color.white.opacity(0.05)]
-                            : [Color.white.opacity(0.75), Color.white.opacity(0.10)],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    ),
-                    lineWidth: 1
-                )
-            }
-            .clipShape(RoundedRectangle(cornerRadius: radius, style: .continuous))
-            .shadow(color: filled ? Color.blue.opacity(0.4) : Color.black.opacity(0.05),
-                    radius: filled ? 10 : 6,
-                    x: 0,
-                    y: filled ? 5 : 3)
             .opacity(configuration.isPressed ? 0.82 : 1)
             .scaleEffect(configuration.isPressed ? 0.985 : 1)
             .animation(.spring(response: 0.24, dampingFraction: 0.9), value: configuration.isPressed)
@@ -290,77 +122,41 @@ struct FlatButtonStyle: ButtonStyle {
 }
 
 struct PressScaleStyle: ButtonStyle {
-    var scale: CGFloat = 0.97
-
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .opacity(configuration.isPressed ? 0.6 : 1)
-            .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
+            .opacity(configuration.isPressed ? 0.7 : 1)
+            .scaleEffect(configuration.isPressed ? 0.96 : 1)
+            .animation(.spring(response: 0.24, dampingFraction: 0.9), value: configuration.isPressed)
     }
 }
 
-// MARK: - 胶囊 / 标签
-
-/// iOS 分段控件式的胶囊：灰底，选中是白色滑块 + 强调色文字。
-struct FlatPill: ViewModifier {
-    var selected: Bool
-    var tint: Color
-
-    func body(content: Content) -> some View {
-        content
-            .padding(.horizontal, 14)
-            .padding(.vertical, 8)
-            .background {
-                Capsule(style: .continuous)
-                    .fill(selected ? GlassPalette.surface : Color.clear)
-            }
-            .overlay {
-                Capsule(style: .continuous)
-                    .strokeBorder(selected ? Color.clear : GlassPalette.separator, lineWidth: 0.5)
-            }
-            .clipShape(Capsule(style: .continuous))
-    }
-}
-
-extension View {
-    func flatPill(selected: Bool = false, tint: Color = GlassPalette.accent) -> some View {
-        modifier(FlatPill(selected: selected, tint: tint))
-    }
-
-    func glassPill(selected: Bool = false, tint: Color = GlassPalette.accent) -> some View {
-        flatPill(selected: selected, tint: tint)
-    }
-}
-
-// MARK: - 状态标记
-
+/// 圆形状态标。
 struct FlatStatusMark: View {
     var symbol: String
-    var tint: Color
+    var tint: Color = .appBrand
     var size: CGFloat = 44
 
     var body: some View {
         ZStack {
-            Circle().fill(tint.opacity(0.12))
+            Circle().fill(tint.opacity(0.14))
             Image(systemName: symbol)
-                .font(.system(size: size * 0.42, weight: .semibold))
+                .font(Typography.headline)
                 .foregroundStyle(tint)
         }
         .frame(width: size, height: size)
     }
 }
 
-// MARK: - 进度条
-
+/// 细进度条。
 struct FlatProgressBar: View {
     var progress: Double
-    var tint: Color = GlassPalette.accent
-    var height: CGFloat = 4
+    var tint: Color = .appBrand
+    var height: CGFloat = 6
 
     var body: some View {
         GeometryReader { geo in
             ZStack(alignment: .leading) {
-                Capsule().fill(GlassPalette.surfaceHigh)
+                Capsule().fill(Color(uiColor: .tertiarySystemFill))
                 Capsule()
                     .fill(tint)
                     .frame(width: max(0, min(1, progress)) * geo.size.width)
@@ -369,8 +165,6 @@ struct FlatProgressBar: View {
         .frame(height: height)
     }
 }
-
-// MARK: - 区块标题 / 分隔线
 
 struct FlatSectionHeader: View {
     var title: String
@@ -383,14 +177,10 @@ struct FlatSectionHeader: View {
 
     var body: some View {
         HStack {
-            Text(title)
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(GlassPalette.textSecondary)
-                .textCase(.uppercase)
-            Spacer(minLength: 8)
+            Text(title).font(Typography.sectionTitle)
+            Spacer(minLength: Spacing.s)
             if let trailing { trailing }
         }
-        .padding(.horizontal, 4)
     }
 }
 
@@ -399,7 +189,7 @@ struct FlatDivider: View {
 
     var body: some View {
         Rectangle()
-            .fill(Color.white.opacity(0.35))
+            .fill(Color.appSeparator)
             .frame(height: 0.5)
             .padding(.leading, inset)
     }

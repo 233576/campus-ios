@@ -85,25 +85,25 @@ struct PaySheet: View {
     private var amountCard: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("待支付")
-                .font(.system(size: 12, weight: .medium))
+                .font(Typography.caption.weight(.medium))
                 .foregroundStyle(Flat.textTertiary)
 
             HStack(alignment: .firstTextBaseline, spacing: 6) {
                 Text("¥")
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(Typography.body.weight(.semibold))
                     .foregroundStyle(Flat.textSecondary)
                 Text(current.price.isEmpty ? "0.00" : current.price)
-                    .font(.system(size: 34, weight: .bold, design: .rounded))
+                    .font(Typography.pageTitle.weight(.bold))
                     .foregroundStyle(Flat.textPrimary)
                 Spacer()
             }
 
             Text(current.skuName.isEmpty ? current.machineName : current.skuName)
-                .font(.system(size: 14, weight: .medium))
+                .font(Typography.subheadline.weight(.medium))
                 .foregroundStyle(Flat.textPrimary)
 
             Text(current.machineName)
-                .font(.system(size: 12))
+                .font(Typography.caption)
                 .foregroundStyle(Flat.textTertiary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -129,7 +129,7 @@ struct PaySheet: View {
                     ProgressView().tint(tint).scaleEffect(0.6)
                 }
                 Text(title)
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(Typography.footnote.weight(.semibold))
                     .foregroundStyle(current.payType == type ? tint : Flat.textSecondary)
             }
             .frame(maxWidth: .infinity)
@@ -154,10 +154,10 @@ struct PaySheet: View {
         } else if current.prepayParam.isEmpty {
             VStack(alignment: .leading, spacing: 8) {
                 Text("没有拿到支付串")
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(Typography.subheadline.weight(.semibold))
                     .foregroundStyle(Flat.textPrimary)
                 Text(store.lastPrepayError ?? "点下面的「重新取支付串」再试一次。")
-                    .font(.system(size: 12))
+                    .font(Typography.caption)
                     .foregroundStyle(Flat.orange)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -172,14 +172,14 @@ struct PaySheet: View {
                     Text(payType == PGProtocol.payTypeWeChat
                          ? "用微信「扫一扫」扫这个码付款（也可以截屏后用相册识别）"
                          : "用支付宝「扫一扫」扫这个码付款")
-                        .font(.system(size: 12))
+                        .font(Typography.caption)
                         .foregroundStyle(Flat.textTertiary)
                         .multilineTextAlignment(.center)
                 }
 
                 if !handoff.note.isEmpty {
                     Text(handoff.note)
-                        .font(.system(size: 11))
+                        .font(Typography.caption2)
                         .foregroundStyle(Flat.orange)
                         .multilineTextAlignment(.leading)
                         .fixedSize(horizontal: false, vertical: true)
@@ -197,19 +197,19 @@ struct PaySheet: View {
             ZStack {
                 Circle().fill(Flat.orange.opacity(0.16)).frame(width: 40, height: 40)
                 Image(systemName: "wallet.bifold.fill")
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(Typography.body.weight(.semibold))
                     .foregroundStyle(Flat.orange)
             }
 
             VStack(alignment: .leading, spacing: 3) {
                 Text("账号余额")
-                    .font(.system(size: 12))
+                    .font(Typography.caption)
                     .foregroundStyle(Flat.textTertiary)
                 Text("¥ \(balanceText)")
-                    .font(.system(size: 17, weight: .semibold, design: .rounded))
+                    .font(Typography.body.weight(.semibold))
                     .foregroundStyle(Flat.textPrimary)
                 Text("店铺余额 \(store.shopBalanceText)")
-                    .font(.system(size: 11))
+                    .font(Typography.caption2)
                     .foregroundStyle(store.shopBalanceTotal > 0 ? Flat.green : Flat.textTertiary)
             }
 
@@ -219,7 +219,7 @@ struct PaySheet: View {
                 showingRecharge = true
             } label: {
                 Text("去充值")
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(Typography.footnote.weight(.semibold))
                     .foregroundStyle(Flat.orange)
                     .padding(.horizontal, 14)
                     .padding(.vertical, 8)
@@ -252,11 +252,11 @@ struct PaySheet: View {
                 } label: {
                     HStack {
                         Text(showParam ? "收起支付串" : "查看支付串全文")
-                            .font(.system(size: 12))
+                            .font(Typography.caption)
                             .foregroundStyle(Flat.accent)
                         Spacer()
                         Image(systemName: showParam ? "chevron.up" : "chevron.down")
-                            .font(.system(size: 10, weight: .semibold))
+                            .font(Typography.caption2.weight(.semibold))
                             .foregroundStyle(Flat.textTertiary)
                     }
                     .padding(.horizontal, 14)
@@ -265,7 +265,7 @@ struct PaySheet: View {
                 .buttonStyle(.plain)
                 if showParam {
                     Text(current.prepayParam)
-                        .font(.system(size: 10, design: .monospaced))
+                        .font(Typography.mono)
                         .foregroundStyle(Flat.textTertiary)
                         .textSelection(.enabled)
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -280,11 +280,11 @@ struct PaySheet: View {
                 } label: {
                     HStack {
                         Text(showRaw ? "收起原始响应" : "查看原始响应")
-                            .font(.system(size: 12))
+                            .font(Typography.caption)
                             .foregroundStyle(Flat.accent)
                         Spacer()
                         Image(systemName: showRaw ? "chevron.up" : "chevron.down")
-                            .font(.system(size: 10, weight: .semibold))
+                            .font(Typography.caption2.weight(.semibold))
                             .foregroundStyle(Flat.textTertiary)
                     }
                     .padding(.horizontal, 14)
@@ -293,7 +293,7 @@ struct PaySheet: View {
                 .buttonStyle(.plain)
                 if showRaw {
                     Text(store.lastPrepayRaw)
-                        .font(.system(size: 10, design: .monospaced))
+                        .font(Typography.mono)
                         .foregroundStyle(Flat.textTertiary)
                         .textSelection(.enabled)
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -309,7 +309,7 @@ struct PaySheet: View {
     private func infoRow(_ title: String, _ value: String, mono: Bool = false) -> some View {
         HStack(alignment: .top, spacing: 12) {
             Text(title)
-                .font(.system(size: 13))
+                .font(Typography.footnote)
                 .foregroundStyle(Flat.textTertiary)
             Spacer(minLength: 12)
             Text(value)
@@ -333,7 +333,7 @@ struct PaySheet: View {
                             ProgressView().tint(.white).scaleEffect(0.8)
                         }
                         Text(paying ? "支付中…" : "立即用余额支付")
-                            .font(.system(size: 16, weight: .semibold))
+                            .font(Typography.body.weight(.semibold))
                     }
                     .frame(maxWidth: .infinity)
                     .frame(height: 50)
@@ -345,7 +345,7 @@ struct PaySheet: View {
                     openPayTarget()
                 } label: {
                     Text("打开\(PGProtocol.payTitle(payType))付款")
-                        .font(.system(size: 16, weight: .semibold))
+                        .font(Typography.body.weight(.semibold))
                         .frame(maxWidth: .infinity)
                         .frame(height: 50)
                 }
@@ -359,7 +359,7 @@ struct PaySheet: View {
                     alertMessage = "支付串已复制（\(current.prepayParam.count) 字符）"
                 } label: {
                     Text("复制支付串")
-                        .font(.system(size: 15, weight: .semibold))
+                        .font(Typography.subheadline.weight(.semibold))
                         .frame(maxWidth: .infinity)
                         .frame(height: 46)
                 }
@@ -370,7 +370,7 @@ struct PaySheet: View {
                 Task { await refreshStatus() }
             } label: {
                 Text("我付好了，查状态")
-                    .font(.system(size: 15, weight: .semibold))
+                    .font(Typography.subheadline.weight(.semibold))
                     .frame(maxWidth: .infinity)
                     .frame(height: 46)
             }
